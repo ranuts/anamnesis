@@ -74,7 +74,6 @@
 ## **5. 部署与技术栈说明**
 
 - **架构**: 纯静态 React SPA。
-- **部署**: GitHub Pages / Arweave。
 - **核心依赖**: `arweave-js`, `@irys/sdk`, `libsodium-wrappers`, `dexie`.
 
 ---

@@ -104,10 +104,12 @@ export function HistoryTable({
                   variant="outline" 
                   size="icon" 
                   onClick={() => handleDownload(r)}
-                  disabled={!!downloading}
+                  disabled={!!downloading || (r.encryptionAlgo !== "none" && !masterKey)}
                 >
                   {downloading === r.txId ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : r.encryptionAlgo !== "none" && !masterKey ? (
+                    <Shield className="w-4 h-4 text-slate-400" />
                   ) : (
                     <Download className="w-4 h-4" />
                   )}

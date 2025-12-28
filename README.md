@@ -74,5 +74,4 @@ The value closed loop handling the "Retrieval" of data.
 ## **5. Tech Stack & Deployment**
 
 - **Architecture**: Static React SPA.
-- **Deployment**: GitHub Pages / Arweave.
 - **Core Dependencies**: `arweave-js`, `@irys/sdk`, `libsodium-wrappers`, `dexie`.

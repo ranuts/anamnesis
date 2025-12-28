@@ -4,9 +4,11 @@
     "dashboard": "Dashboard",
     "upload": "Upload",
     "activeIdentity": "Active Identity",
+    "identityLocked": "Identity Locked",
     "noIdentity": "No Identity Selected",
     "securityNotice": "Security Notice",
     "securityNoticeDesc": "All files are encrypted in your browser using a unique key derived from your Master Password before they are uploaded. Only you can decrypt them. Make sure you never lose your Master Password!",
+    "unlockRequired": "Identity Locked: Encryption and Arweave uploads are disabled until you unlock your identity layer in the Dashboard.",
     "footer": "© 2025 Anamnesis — Built with ❤️ for the Permaweb"
   },
   "unlock": {

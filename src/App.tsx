@@ -73,12 +73,17 @@ export default function App() {
     const success = await walletManager.unlock(password);
     if (success) {
       toast.success(t("unlock.success"));
+      setPassword(""); // Clear password after success
     } else {
       toast.error(t("unlock.failed"));
     }
   };
 
   const handleCreateArWallet = async () => {
+    if (!walletManager.isUnlocked) {
+      toast.error(t("history.errorLocked"));
+      return;
+    }
     try {
       const { key, address } = await generateArweaveWallet();
       const alias = prompt(t("identities.aliasPrompt"), `Wallet-${address.slice(0, 4)}`);
@@ -100,6 +105,10 @@ export default function App() {
   };
 
   const handleImportWallet = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!walletManager.isUnlocked) {
+      toast.error(t("history.errorLocked"));
+      return;
+    }
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -119,6 +128,10 @@ export default function App() {
   };
 
   const onUploadArweave = async () => {
+    if (!walletManager.isUnlocked) {
+      toast.error(t("history.errorLocked"));
+      return;
+    }
     if (!file || !walletManager.activeWallet) {
       toast.error(t("upload.arweaveSelectIdentity"));
       return;
@@ -141,6 +154,10 @@ export default function App() {
   };
 
   const onUploadIrys = async () => {
+    if (encryptUpload && !walletManager.isUnlocked) {
+      toast.error(t("history.errorLocked"));
+      return;
+    }
     if (!file || !walletClient) {
       toast.error(t("upload.irysConnectWallet"));
       return;
@@ -166,49 +183,6 @@ export default function App() {
 
   if (!mounted) return null;
 
-  if (!walletManager.isUnlocked) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
-        <div className="absolute top-4 right-4">
-          <LanguageSwitcher />
-        </div>
-        <Card className="w-full max-w-md bg-slate-800 border-slate-700 text-slate-100">
-          <CardHeader className="text-center">
-            <div className="mx-auto bg-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-2xl font-bold">{t("common.appName")}</CardTitle>
-            <CardDescription className="text-slate-400">
-              {t("unlock.desc")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUnlock} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("unlock.passwordLabel")}</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder={t("unlock.passwordPlaceholder")}
-                  className="bg-slate-700 border-slate-600 text-white"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
-                <Unlock className="mr-2 h-4 w-4" /> {t("unlock.submit")}
-              </Button>
-            </form>
-            <p className="mt-6 text-xs text-slate-500 text-center">
-              {t("unlock.warning")}
-            </p>
-          </CardContent>
-        </Card>
-        <Toaster theme="dark" position="bottom-right" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur-md">
@@ -222,9 +196,13 @@ export default function App() {
             <div className="h-8 w-px bg-slate-200" />
             <ConnectButton />
             <div className="h-8 w-px bg-slate-200" />
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-              <ShieldCheck className="w-4 h-4 text-green-500" />
-              {t("common.activeIdentity")}
+            <div className={`flex items-center gap-2 text-sm font-medium px-3 py-1 rounded-full border ${
+              walletManager.isUnlocked 
+              ? "text-green-600 bg-green-50 border-green-200" 
+              : "text-amber-600 bg-amber-50 border-amber-200"
+            }`}>
+              {walletManager.isUnlocked ? <ShieldCheck className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              {walletManager.isUnlocked ? t("common.activeIdentity") : t("common.identityLocked")}
             </div>
           </div>
         </div>
@@ -255,10 +233,45 @@ export default function App() {
           </div>
 
           <TabsContent value="dashboard" className="space-y-8">
+            {!walletManager.isUnlocked && (
+              <Card className="bg-indigo-600 text-white border-none shadow-xl overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <Lock className="w-32 h-32" />
+                </div>
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold">{t("unlock.title")}</CardTitle>
+                  <CardDescription className="text-indigo-100 max-w-lg">
+                    {t("unlock.desc")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleUnlock} className="flex flex-col sm:flex-row gap-4 items-end">
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="password">{t("unlock.passwordLabel")}</Label>
+                      <Input 
+                        id="password" 
+                        type="password" 
+                        placeholder={t("unlock.passwordPlaceholder")}
+                        className="bg-indigo-500/50 border-indigo-400 text-white placeholder:text-indigo-200"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                    <Button type="submit" variant="secondary" className="h-10 px-8">
+                      <Unlock className="mr-2 h-4 w-4" /> {t("unlock.submit")}
+                    </Button>
+                  </form>
+                  <p className="mt-4 text-xs text-indigo-200">
+                    {t("unlock.warning")}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Identities Sidebar */}
               <div className="space-y-6">
-                <Card>
+                <Card className={!walletManager.isUnlocked ? "opacity-60 grayscale-[0.5]" : ""}>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Wallet className="w-5 h-5 text-indigo-600" />
@@ -271,11 +284,13 @@ export default function App() {
                       {walletManager.wallets.map((w) => (
                         <div 
                           key={w.id}
-                          onClick={() => walletManager.selectWallet(w)}
-                          className={`p-3 rounded-md border cursor-pointer transition-all ${
+                          onClick={() => walletManager.isUnlocked && walletManager.selectWallet(w)}
+                          className={`p-3 rounded-md border transition-all ${
                             walletManager.activeAddress === w.address 
                             ? "border-indigo-600 bg-indigo-50" 
-                            : "border-slate-200 hover:bg-slate-50"
+                            : walletManager.isUnlocked 
+                              ? "border-slate-200 hover:bg-slate-50 cursor-pointer" 
+                              : "border-slate-200 cursor-not-allowed"
                           }`}
                         >
                           <div className="font-semibold text-sm truncate">{w.alias}</div>
@@ -289,19 +304,31 @@ export default function App() {
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-2 pt-2">
-                      <Button variant="outline" size="sm" onClick={handleCreateArWallet}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleCreateArWallet}
+                        disabled={!walletManager.isUnlocked}
+                      >
                         <Plus className="mr-1 h-3 w-3" /> {t("identities.new")}
                       </Button>
                       <div className="relative">
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          disabled={!walletManager.isUnlocked}
+                        >
                           <Download className="mr-1 h-3 w-3" /> {t("identities.import")}
                         </Button>
-                        <input 
-                          type="file" 
-                          accept=".json" 
-                          onChange={handleImportWallet}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
+                        {walletManager.isUnlocked && (
+                          <input 
+                            type="file" 
+                            accept=".json" 
+                            onChange={handleImportWallet}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -329,11 +356,20 @@ export default function App() {
                   </CardContent>
                 </Card>
               </div>
-            </div>
+      </div>
           </TabsContent>
 
           <TabsContent value="upload">
             <div className="max-w-3xl mx-auto space-y-8">
+              {!walletManager.isUnlocked && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-amber-800 text-sm">
+                  <Lock className="w-4 h-4 shrink-0" />
+                  <p>
+                    {t("common.unlockRequired")}
+                  </p>
+                </div>
+              )}
+              
               <Tabs defaultValue="irys" className="w-full">
                 <TabsList className="mb-6 grid h-12 w-full grid-cols-2 bg-white border">
                   <TabsTrigger value="irys" className="flex items-center gap-2">
@@ -384,7 +420,7 @@ export default function App() {
                         <Button
                           className="h-12 w-full text-lg shadow-lg shadow-indigo-100"
                           onClick={onUploadIrys}
-                          disabled={uploading || !file}
+                          disabled={uploading || !file || (encryptUpload && !walletManager.isUnlocked)}
                         >
                           {uploading ? (
                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("upload.uploading")}</>
@@ -398,7 +434,7 @@ export default function App() {
                 </TabsContent>
 
                 <TabsContent value="arweave">
-                  <Card>
+                  <Card className={!walletManager.isUnlocked ? "opacity-60" : ""}>
                     <CardHeader>
                       <CardTitle>{t("upload.arweaveTitle")}</CardTitle>
                       <CardDescription>
@@ -411,6 +447,7 @@ export default function App() {
                         <Input
                           id="file-arweave"
                           type="file"
+                          disabled={!walletManager.isUnlocked}
                           onChange={(e) => e.target.files && setFile(e.target.files[0])}
                         />
                       </div>
@@ -421,6 +458,7 @@ export default function App() {
                           id="encrypt-ar" 
                           checked={encryptUpload} 
                           onChange={(e) => setEncryptUpload(e.target.checked)}
+                          disabled={!walletManager.isUnlocked}
                           className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 h-4 w-4"
                         />
                         <Label htmlFor="encrypt-ar" className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1.5">
@@ -437,7 +475,7 @@ export default function App() {
                         <Button
                           className="h-12 w-full bg-black text-lg hover:bg-zinc-800 shadow-lg shadow-zinc-100"
                           onClick={onUploadArweave}
-                          disabled={uploading || !file}
+                          disabled={uploading || !file || !walletManager.isUnlocked}
                         >
                           {uploading ? (
                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("upload.uploading")}</>

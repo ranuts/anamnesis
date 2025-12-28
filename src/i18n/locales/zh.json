@@ -4,9 +4,11 @@
     "dashboard": "控制面板",
     "upload": "上传",
     "activeIdentity": "当前身份",
+    "identityLocked": "身份已锁定",
     "noIdentity": "未选择身份",
     "securityNotice": "安全提示",
     "securityNoticeDesc": "所有文件在上传前都会在浏览器中使用从您的主密码派生的唯一密钥进行加密。只有您可以解密它们。请务必不要丢失您的主密码！",
+    "unlockRequired": "身份已锁定：在控制面板解锁身份层之前，加密功能和 Arweave 上传将被禁用。",
     "footer": "© 2025 Anamnesis — 为永恒网 (Permaweb) 精心打造"
   },
   "unlock": {
