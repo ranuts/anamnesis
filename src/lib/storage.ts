@@ -9,6 +9,12 @@ export const arweave = Arweave.init({
   protocol: "https",
 })
 
+export const generateArweaveWallet = async () => {
+  const key = await arweave.wallets.generate()
+  const address = await arweave.wallets.jwkToAddress(key)
+  return { key, address }
+}
+
 export const getIrys = async (provider: any) => {
   const ethersProvider = new BrowserProvider(provider)
   const wallet = { name: "ethersv6", provider: ethersProvider }

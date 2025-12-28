@@ -15,8 +15,21 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
-import { getIrys, uploadToArweave, uploadToIrys, arweave } from "@/lib/storage"
-import { Loader2, Upload, ExternalLink, HardDrive } from "lucide-react"
+import {
+  getIrys,
+  uploadToArweave,
+  uploadToIrys,
+  arweave,
+  generateArweaveWallet,
+} from "@/lib/storage"
+import {
+  Loader2,
+  Upload,
+  ExternalLink,
+  HardDrive,
+  Key,
+  Download,
+} from "lucide-react"
 
 export default function App() {
   const { isConnected, address } = useAccount()
@@ -25,10 +38,28 @@ export default function App() {
   const [uploading, setUploading] = useState(false)
   const [txId, setTxId] = useState<string | null>(null)
   const [arweaveKey, setArweaveKey] = useState<any>(null)
+  const [newWalletAddress, setNewWalletAddress] = useState<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
+    }
+  }
+
+  const handleCreateArWallet = async () => {
+    try {
+      const { key, address } = await generateArweaveWallet()
+      const blob = new Blob([JSON.stringify(key)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `arweave-key-${address}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      setNewWalletAddress(address)
+      toast.success("New Arweave wallet generated and downloaded!")
+    } catch (error: any) {
+      toast.error(`Failed to generate wallet: ${error.message}`)
     }
   }
 
@@ -214,6 +245,54 @@ export default function App() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <div className="mt-12">
+          <Card className="border-indigo-100 bg-indigo-50/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5 text-indigo-600" />
+                Wallet Tools
+              </CardTitle>
+              <CardDescription>
+                Need an account? Generate a new Arweave wallet or manage your
+                assets.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <Button
+                  variant="outline"
+                  className="flex-1 bg-white"
+                  onClick={handleCreateArWallet}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Generate New Arweave Key
+                </Button>
+                <Button variant="outline" className="flex-1 bg-white" asChild>
+                  <a
+                    href="https://irys.xyz/docs/overview"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    How Irys Accounts Work
+                  </a>
+                </Button>
+              </div>
+              {newWalletAddress && (
+                <div className="mt-4 rounded-md border border-indigo-100 bg-white p-3 text-sm text-slate-600 shadow-sm">
+                  <span className="font-semibold text-indigo-700">
+                    Latest generated address:
+                  </span>{" "}
+                  <code className="break-all">{newWalletAddress}</code>
+                  <p className="mt-1 text-xs text-slate-400 italic">
+                    * Make sure to keep your downloaded JSON keyfile safe!
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {txId && (
           <Card className="mt-8 border-green-200 bg-green-50">
