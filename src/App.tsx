@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useWalletClient } from "wagmi";
 import { ArweaveIcon, IrysIcon } from "@/components/icons";
@@ -49,10 +49,15 @@ export default function App() {
   const { data: walletClient } = useWalletClient();
   const walletManager = useWalletManager();
   
+  const [mounted, setMounted] = useState(false);
   const [password, setPassword] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [encryptUpload, setEncryptUpload] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const uploadHistory = useLiveQuery(
     () => db.uploads.orderBy("createdAt").reverse().toArray(),
@@ -158,6 +163,8 @@ export default function App() {
       setUploading(false);
     }
   };
+
+  if (!mounted) return null;
 
   if (!walletManager.isUnlocked) {
     return (

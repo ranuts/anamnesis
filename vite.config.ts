@@ -19,9 +19,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@metamask/sdk": path.resolve(__dirname, "node_modules/@metamask/sdk"),
     },
   },
   optimizeDeps: {
-    include: ["@metamask/sdk"],
+    include: ["@metamask/sdk", "@rainbow-me/rainbowkit", "wagmi", "viem"],
   },
 })
