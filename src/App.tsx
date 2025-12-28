@@ -241,7 +241,10 @@ export default function App() {
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold">{t("unlock.title")}</CardTitle>
                   <CardDescription className="text-indigo-100 max-w-lg">
-                    {t("unlock.desc")}
+                    {t("unlock.desc")} <br className="hidden sm:block" />
+                    <span className="text-xs mt-2 inline-block bg-white/20 px-2 py-0.5 rounded italic">
+                      Note: This is separate from your connected Web3 wallet.
+                    </span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -366,8 +369,8 @@ export default function App() {
                   <Lock className="w-4 h-4 shrink-0" />
                   <p>
                     {t("common.unlockRequired")}
-                  </p>
-                </div>
+        </p>
+      </div>
               )}
               
               <Tabs defaultValue="irys" className="w-full">

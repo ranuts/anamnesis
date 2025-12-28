@@ -3,12 +3,12 @@
     "appName": "Anamnesis",
     "dashboard": "Dashboard",
     "upload": "Upload",
-    "activeIdentity": "Active Identity",
-    "identityLocked": "Identity Locked",
+    "activeIdentity": "Identity Layer Unlocked",
+    "identityLocked": "Privacy Layer Locked",
     "noIdentity": "No Identity Selected",
-    "securityNotice": "Security Notice",
-    "securityNoticeDesc": "All files are encrypted in your browser using a unique key derived from your Master Password before they are uploaded. Only you can decrypt them. Make sure you never lose your Master Password!",
-    "unlockRequired": "Identity Locked: Encryption and Arweave uploads are disabled until you unlock your identity layer in the Dashboard.",
+    "securityNotice": "Dual-Layer Security",
+    "securityNoticeDesc": "1. External wallets are for storage payments; 2. The Identity Layer (Master Password) handles local file encryption and Arweave keys. This separation ensures your data remains private even if your wallet is compromised.",
+    "unlockRequired": "Privacy Layer Locked: Unlock with your Master Password in the Dashboard to enable E2EE and Arweave features.",
     "footer": "© 2025 Anamnesis — Built with ❤️ for the Permaweb"
   },
   "unlock": {

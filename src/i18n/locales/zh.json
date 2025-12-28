@@ -3,12 +3,12 @@
     "appName": "Anamnesis",
     "dashboard": "控制面板",
     "upload": "上传",
-    "activeIdentity": "当前身份",
-    "identityLocked": "身份已锁定",
+    "activeIdentity": "加密身份已解锁",
+    "identityLocked": "隐私加密层已锁定",
     "noIdentity": "未选择身份",
-    "securityNotice": "安全提示",
-    "securityNoticeDesc": "所有文件在上传前都会在浏览器中使用从您的主密码派生的唯一密钥进行加密。只有您可以解密它们。请务必不要丢失您的主密码！",
-    "unlockRequired": "身份已锁定：在控制面板解锁身份层之前，加密功能和 Arweave 上传将被禁用。",
+    "securityNotice": "双层安全机制",
+    "securityNoticeDesc": "1. 外部钱包用于支付存储费用；2. 身份层主密码用于本地加密文件和保护 Arweave 密钥。两者相互独立，确保即使钱包被盗，文件内容依然安全。",
+    "unlockRequired": "隐私层已锁定：在控制面板输入主密码解锁后，即可启用端到端加密和 Arweave 原生功能。",
     "footer": "© 2025 Anamnesis — 为永恒网 (Permaweb) 精心打造"
   },
   "unlock": {
