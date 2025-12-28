@@ -26,10 +26,26 @@ const db = new Dexie("AnamnesisDB") as Dexie & {
   uploads: EntityTable<UploadRecord, "id">;
 };
 
-db.version(2).stores({
+db.version(1).stores({
   wallets: "++id, address, alias",
-  uploads: "++id, txId, fileHash, ownerAddress, storageType, createdAt",
+  uploads: "++id, txId, fileHash, ownerAddress, storageType",
 });
+
+db.version(2)
+  .stores({
+    wallets: "++id, address, alias",
+    uploads: "++id, txId, fileHash, ownerAddress, storageType, createdAt",
+  })
+  .upgrade((tx) => {
+    return tx
+      .table("uploads")
+      .toCollection()
+      .modify((upload) => {
+        if (!upload.createdAt) {
+          upload.createdAt = Date.now();
+        }
+      });
+  });
 
 export { db };
 
