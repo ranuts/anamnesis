@@ -1,105 +1,78 @@
-# **Anamnesis 产品需求文档 (最终版)**
+# Anamnesis
 
-**版本：** 1.1
-**最后更新：** 2023-10-27
-**更新摘要：** 新增第四章“安全架构与性能设计”
-**文档状态：** 已闭环
+[English] | [中文](./README.zh.md)
 
 ---
 
-## **1. 产品愿景与概述**
+## **1. Product Vision & Overview**
 
-**产品名称：** Anamnesis
-**核心理念：** 一个纯粹的、用户主权至上的 Web3 静态文件存储器。其名称源于柏拉图哲学中的“灵魂回忆说”，寓意此工具帮助用户的数字灵魂找回并永久守护那些本应永恒的记忆与数据。
-**产品定位：** 一个部署于 GitHub Pages 的纯前端 React 应用。它允许用户直接使用 Arweave 钱包身份，在一个界面内自由选择将文件**永久刻录**在 Arweave 公链上，或**私密封存**在 Irys 存储网络，并形成完整的“身份 - 存储 - 检索”闭环。
-**目标用户：**
-1.  **Web3 原生用户**：拥有 Arweave 钱包，寻求简单统一界面来管理跨协议存储。
-2.  **Web3 好奇者**：无钱包，但愿意在应用内创建第一个自托管的 Arweave 钱包，体验真正的数据主权。
-3.  **创作者与存档者**：有永久存档数字资产（如 NFT 元数据、作品源文件）或私密存储敏感文档的需求。
+**Product Name:** Anamnesis  
+**Core Concept:** A pure, user-sovereignty-first Web3 static file storer. The name originates from Plato's "Theory of Reminiscence," implying this tool helps users' digital souls retrieve and permanently guard memories and data that should be eternal.  
+**Product Positioning:** A pure frontend application. It allows users to use Arweave wallet identities to choose between **permanently burning** files on the Arweave blockchain or **privately sealing** them on the Irys storage network, forming a complete "Identity - Storage - Retrieval" closed loop.  
+**Target Users:**
+1.  **Web3 Native Users**: Arweave wallet holders seeking a unified interface for cross-protocol storage.
+2.  **Web3 Curious**: Those willing to create their first self-custodial Arweave wallet for true data sovereignty.
+3.  **Creators & Archivists**: People needing permanent archiving for digital assets (NFT metadata, source files) or private storage for sensitive documents.
 
-## **2. 核心用户流程与闭环**
+## **2. Core User Flow & Closed Loop**
 
-整个产品体验围绕三个核心闭环构建：**账户钱包管理 -> 存储与资源管理 -> 资源查找与下载**。
+The entire product experience is built around three core closed loops: **Account & Wallet Management -> Storage & Resource Management -> Resource Search & Download**.
 
-## **3. 详细功能需求 (FRD)**
+## **3. Detailed Functional Requirements (FRD)**
 
-### **3.1 模块一：账户钱包管理**
-此模块是产品的一切基础，负责建立和管理用户的唯一身份。
+### **3.1 Module 1: Account & Wallet Management**
+This module is the foundation for establishing and managing the user's unique identity.
 
-| 功能点 | 描述 | 验收标准 |
+| Feature | Description | Acceptance Criteria |
 | :--- | :--- | :--- |
-| **FR1.1 创建钱包** | 为用户在**浏览器前端**生成全新的 Arweave 钱包密钥对（JWK）。 | 1. 使用 `arweave-js` 安全生成。<br>2. **强制、不可跳过**的助记词/Keystore 文件备份流程。<br>3. 清晰警示私钥丢失即丢失所有数据。 |
-| **FR1.2 导入钱包** | 允许用户通过上传 Keystore 文件或输入助记词，导入已有钱包。 | 1. 支持标准 JSON 密钥文件。<br>2. 助记词输入有验证机制。<br>3. 导入后能正常显示地址和余额。 |
-| **FR1.3 连接钱包** | 支持与 ArConnect 等浏览器扩展钱包连接。 | 1. 点击后唤起扩展授权。<br>2. 成功连接后显示钱包地址和网络信息。 |
-| **FR1.4 钱包切换与管理** | 允许用户在多个已导入/创建的钱包间切换，并管理本地钱包列表。 | 1. UI 上有清晰的钱包切换器。<br>2. 可对本地钱包进行别名设置、删除（仅删除本地引用）操作。<br>3. 当前活跃钱包地址在全局显眼展示。 |
-| **FR1.5 余额查看** | 显示当前活跃钱包在 Arweave 和 Irys 网络上的原生代币余额。 | 1. 分别显示 AR 和 Irys 信用余额。<br>2. 余额信息随时间自动更新。 |
+| **FR1.1 Create Wallet** | Generate new Arweave JWK in the **browser frontend**. | 1. Securely generated via `arweave-js`.<br>2. **Mandatory** backup process for mnemonic/keystore.<br>3. Clear warnings about total data loss if private keys are lost. |
+| **FR1.2 Import Wallet** | Allow importing existing wallets via Keystore file or mnemonic. | 1. Support standard JSON key files.<br>2. Mnemonic validation mechanism.<br>3. Display address and balance after import. |
+| **FR1.3 Connect Wallet** | Support connection with browser extensions like ArConnect. | 1. Invoke extension authorization.<br>2. Display wallet address and network info. |
+| **FR1.4 Wallet Management** | Switch between multiple wallets and manage local wallet list. | 1. Clear wallet switcher in UI.<br>2. Support for aliases and deletion (local only).<br>3. Active address displayed prominently. |
+| **FR1.5 Balance Check** | Display native token balances for Arweave and Irys. | 1. Show AR and Irys credit balances.<br>2. Auto-refreshing balance info. |
 
-### **3.2 模块二：存储、展示与资源管理**
-此模块是产品的核心价值，处理数据的“存”与“管”。
+### **3.2 Module 2: Storage & Resource Management**
+The core value module handling the "Storage" and "Management" of data.
 
-| 功能点 | 描述 | 验收标准 |
+| Feature | Description | Acceptance Criteria |
 | :--- | :--- | :--- |
-| **FR2.1 文件选择与预处理** | 用户选择文件后，前端计算其哈希，用于唯一标识。 | 支持拖拽和文件选择器。 |
-| **FR2.2 强制前端加密** | 在上传前，**必须**使用当前活跃钱包的公钥或派生的对称密钥，在浏览器内对文件进行加密。 | 1. 明文绝不离端。<br>2. 使用可靠的加密库（如 libsodium）。<br>3. 加密算法和参数作为元数据保存。 |
-| **FR2.3 存储方案选择** | 用户选择将加密后的文件上传至 Arweave 或 Irys。 | 1. 界面清晰区分两者：**Arweave（永久/一次付费）** vs **Irys（私密/灵活扩展）**。<br>2. 有简明的特性对比说明。 |
-| **FR2.4 支付与上传** | 集成 Bundlr Network，处理支付并上传数据。 | 1. 根据用户选择，调用对应 Bundlr 节点。<br>2. 支持使用 AR、ETH、MATIC 等多币种支付费用。<br>3. 显示实时上传进度和交易确认状态。 |
-| **FR2.5 上传记录与资源管理** | 上传成功后，在本地（IndexedDB）创建一条文件记录，并在 UI 上展示。 | 记录需包含：<br>- 交易 ID (txid)<br>- 原始文件名<br>- 文件哈希<br>- 存储方案 (Arweave/Irys)<br>- 上传时间<br>- 加密信息<br>- 所属钱包地址 |
-| **FR2.6 统一资源仪表板** | 展示由当前活跃钱包上传的所有文件的统一视图。 | 1. 支持按文件名、存储方案、时间筛选排序。<br>2. 清晰标示每个文件的存储来源。<br>3. 仪表板数据通过查询链上交易与本地记录同步生成。 |
+| **FR2.1 File Selection** | Select files and calculate hash for unique identification. | Support drag-and-drop and file picker. |
+| **FR2.2 Mandatory Encryption** | Files **must** be encrypted locally using the active wallet's key before upload. | 1. Plaintext never leaves the device.<br>2. Use reliable crypto libraries (e.g., libsodium).<br>3. Metadata saves algo and params. |
+| **FR2.3 Storage Options** | Choose between Arweave or Irys for encrypted uploads. | 1. Clear distinction: **Arweave (Permanent)** vs **Irys (Private/Scalable)**.<br>2. Comparison of features provided. |
+| **FR2.4 Payment & Upload** | Integrate Bundlr/Irys for payment and upload processing. | 1. Call corresponding nodes based on choice.<br>2. Support multi-token payment (AR, ETH, etc.).<br>3. Real-time progress and confirmation status. |
+| **FR2.5 Record Management** | Create local record (IndexedDB) and display in UI after success. | Records include: txid, filename, hash, storage type, timestamp, crypto info, owner address. |
+| **FR2.6 Unified Dashboard** | Unified view of all files uploaded by the active wallet. | 1. Filtering and sorting support.<br>2. Source marking for each file.<br>3. Sync based on chain queries and local records. |
 
-### **3.3 模块三：资源查找与下载**
-此模块是产品的价值闭环，处理数据的“取”。
+### **3.3 Module 3: Resource Search & Download**
+The value closed loop handling the "Retrieval" of data.
 
-| 功能点 | 描述 | 验收标准 |
+| Feature | Description | Acceptance Criteria |
 | :--- | :--- | :--- |
-| **FR3.1 链上交易查询** | 应用启动或切换钱包时，主动扫描 Arweave/Irys 网络，查询该地址的所有相关交易。 | 1. 用于同步和验证本地文件记录。<br>2. 提供查询状态反馈。 |
-| **FR3.2 下载触发与权限验证** | 用户在资源列表点击下载时，验证当前活跃钱包是否为文件所有者。 | 1. 对比文件记录中的 `ownerAddress` 与当前钱包地址。<br>2. 地址不符时，阻止下载并提示切换钱包。 |
-| **FR3.3 数据获取与本地解密** | 从对应的存储网络获取加密数据，并在浏览器内使用当前钱包的私钥解密。 | 1. 根据文件记录的 `txid` 和 `storageType` 从正确网关获取数据。<br>2. 使用加密时匹配的算法和密钥进行解密。<br>3. 解密过程在内存中进行，私钥不参与网络传输。 |
-| **FR3.4 文件交付** | 将解密后的数据转换为文件，并触发浏览器下载。 | 1. 恢复文件的原始名称和格式。<br>2. 处理大文件下载时的内存和进度问题。 |
+| **FR3.1 Chain Query** | Scan networks on startup or wallet switch to sync transactions. | 1. Sync and verify local records.<br>2. Provide query status feedback. |
+| **FR3.2 Permission Check** | Verify active wallet ownership before triggering download. | 1. Compare `ownerAddress` with active wallet.<br>2. Block and prompt switch if unauthorized. |
+| **FR3.3 Fetch & Decrypt** | Fetch encrypted data and decrypt in-browser using active private key. | 1. Fetch from correct gateway via `txid`.<br>2. Decrypt with matching algo and key.<br>3. In-memory decryption, keys never transmitted. |
+| **FR3.4 File Delivery** | Convert decrypted data to file and trigger browser download. | 1. Restore original filename and format.<br>2. Handle memory/progress for large files. |
 
-## **4. 安全架构与性能设计**
+## **4. Security Architecture & Performance**
 
-### **4.1 钱包与账户安全**
-- **私钥零接触原则**：用户的私钥（包括 JWK 和助记词）**永远仅存在于浏览器内存、用户本地文件系统或硬件钱包中**。应用代码、任何远程服务器或第三方服务均无法触及。
-- **安全的本地存储**：对于应用内创建或导入的钱包，其加密后的密钥信息若需持久化存储于浏览器（如 IndexedDB），必须使用用户提供的**主密码（Master Password）** 进行二次加密。该主密码不存储，每次会话需重新输入。
-- **无状态会话**：用户会话完全由本地钱包状态决定。关闭页面即“登出”，最大程度减少攻击面。
-- **清晰的用户教育**：在所有关键操作点（创建、导入、备份钱包）设置强提示，明确告知用户“私钥即资产，丢失无法找回”的永久责任。
+### **4.1 Wallet & Account Security**
+- **Zero-Touch Principle**: Private keys never leave the browser memory/local filesystem. No servers involved.
+- **Secure Local Storage**: Keystores in IndexedDB are secondary-encrypted with a user-provided **Master Password**.
+- **Stateless Session**: Closing the page "logs out" the user.
+- **Clear Education**: Strong prompts for backup and responsibility.
 
-### **4.2 上传过程安全**
-- **端到端加密（E2EE）**：所有文件在上传前**强制**在浏览器内完成加密。加密密钥由用户钱包派生，确保明文数据绝不离开用户设备，存储网络节点仅处理密文。
-- **加密算法与实现**：采用行业标准、经过审计的加密库（如 `libsodium.js`）实现加密算法（例如 XChaCha20-Poly1305）。禁止使用自制加密算法。
-- **元数据保护**：文件原始名称等敏感元数据在上传前应一同被加密。公开的交易标签（Tags）仅包含非敏感信息，如应用标识、文件哈希、加密算法版本号。
-- **支付安全**：通过 Bundlr Network 处理支付，钱包签名过程在用户扩展或应用隔离环境中完成，避免恶意代码拦截签名请求。
+### **4.2 Upload Security**
+- **End-to-End Encryption (E2EE)**: Mandatory local encryption using industry standards (XChaCha20-Poly1305).
+- **Metadata Protection**: Sensitive metadata (like filenames) is encrypted before upload. Public tags remain non-sensitive.
+- **Payment Security**: Signatures handled in isolated environments or via trusted extensions.
 
-### **4.3 下载与解密安全**
-- **所有权验证**：下载前严格校验请求钱包地址与文件记录的所有者地址，防止越权访问。
-- **安全的数据获取**：通过 HTTPS 从官方或受信任的 Arweave/Irys 网关获取数据，验证数据完整性（如通过交易 ID 和哈希）。
-- **内存中解密**：解密操作在浏览器内存中进行，解密后的明文数据仅在内存中短暂存在，用于创建下载链接，之后立即被垃圾回收。确保磁盘不会缓存明文。
-- **密钥隔离**：解密所用私钥来源于当前会话的活跃钱包，该密钥不被用于任何其他用途，且与网络请求完全隔离。
+### **4.3 Download & Decryption Security**
+- **Ownership Verification**: Strict check before fetching.
+- **In-Memory Decryption**: Plaintext exists briefly in memory and is immediately garbage collected.
+- **Key Isolation**: Decryption keys derived from the current session's active wallet only.
 
-### **4.4 应用整体与依赖安全**
-- **静态应用优势**：应用以纯静态文件部署，无后端服务器，从根本上消除了服务器被入侵、数据库泄露的风险。
-- **依赖安全**：严格锁定所有前端依赖库（`arweave-js`, `bundlr-client`, `libsodium-wrappers` 等）的版本，定期审计并更新至安全版本，使用 `npm audit` 等工具进行监控。
-- **代码完整性**：考虑通过 Arweave 永久部署应用前端，用户可通过固定的交易 ID 访问，确保每次加载的代码均未被篡改。
-- **内容安全策略（CSP）**：部署严格的 CSP 头部，防止 XSS 攻击，限制仅从指定源（如 GitHub Pages、Arweave 网关）加载脚本和资源。
+## **5. Tech Stack & Deployment**
 
-## **5. 部署与技术栈说明**
-
-*   **架构**：纯静态 React 单页应用 (SPA)。
-*   **部署**：GitHub Pages。
-*   **核心依赖**：
-    *   `arweave-js`: 与 Arweave 网络交互，生成钱包。
-    *   `@bundlr-network/client`: 处理支付和上传。
-    *   `irys/sdk`: 与 Irys 网络交互。
-    *   `libsodium-wrappers`: 前端文件加密。
-    *   `localforage` 或 `idb`: 前端 IndexedDB 存储管理。
-
-## **6. 未来迭代展望**
-
-1.  **社交恢复**：为应用内创建的钱包集成智能合约钱包（如通过 `arweave-account`），实现社交恢复功能，降低资产丢失风险。
-2.  **共享功能**：允许用户生成有时间或次数限制的分享链接，授权他人下载特定文件。
-3.  **更多协议集成**：遵循现有适配器模式，无缝集成 Filecoin、Storj 等其他去中心化存储协议。
-4.  **移动端优化**：开发响应式设计或独立的移动端应用。
-
----
-**文档核心闭环确认：**
-本 PRD 所描述的 **身份管理 (1) -> 存储与管理 (2) -> 检索与下载 (3)** 流程，及其底层坚实的**安全架构 (4)**，已构成一个完整、自洽、安全且用户主权的 Web3 数据存储闭环。任何后续功能的增加，都应建立在此闭环体验不被破坏的基础之上。
+- **Architecture**: Static React SPA.
+- **Deployment**: GitHub Pages / Arweave.
+- **Core Dependencies**: `arweave-js`, `@irys/sdk`, `libsodium-wrappers`, `dexie`.

@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "Anamnesis",
+    "dashboard": "控制面板",
+    "upload": "上传",
+    "activeIdentity": "当前身份",
+    "noIdentity": "未选择身份",
+    "securityNotice": "安全提示",
+    "securityNoticeDesc": "所有文件在上传前都会在浏览器中使用从您的主密码派生的唯一密钥进行加密。只有您可以解密它们。请务必不要丢失您的主密码！",
+    "footer": "© 2025 Anamnesis — 为永恒网 (Permaweb) 精心打造"
+  },
+  "unlock": {
+    "title": "解锁身份层",
+    "desc": "解锁您的身份层以管理您的永恒网记录。",
+    "passwordLabel": "主密码",
+    "passwordPlaceholder": "输入您的主密码...",
+    "submit": "解锁身份",
+    "warning": "您的密码永远不会发送到任何服务器。它仅在本地用于派生您的加密密钥。",
+    "errorLength": "密码长度必须至少为 8 个字符",
+    "success": "身份层已解锁",
+    "failed": "解锁失败"
+  },
+  "identities": {
+    "title": "身份管理",
+    "desc": "选择或添加 Arweave 身份",
+    "noWallets": "尚未管理任何身份。",
+    "new": "新建",
+    "import": "导入",
+    "aliasPrompt": "为该钱包输入别名：",
+    "successAdded": "钱包 {{alias}} 已添加",
+    "successActive": "当前活跃钱包：{{alias}}",
+    "successGenerated": "新的 Arweave 钱包已生成并下载！",
+    "errorGenerate": "生成钱包失败：{{message}}"
+  },
+  "history": {
+    "title": "您的永恒网历史",
+    "desc": "通过此身份层存储的文件。只有属于您当前活跃身份的文件才能被解密。",
+    "fileName": "文件名",
+    "protocol": "协议",
+    "security": "安全性",
+    "action": "操作",
+    "encrypted": "已加密",
+    "public": "公开",
+    "noRecords": "未发现本地记录。历史记录同步功能即将推出。",
+    "errorOwner": "您不是此记录的所有者。请切换到正确的身份。",
+    "errorLocked": "身份层已锁定。请解锁后解密。",
+    "successDownload": "文件已解密并下载",
+    "failedDownload": "下载失败：{{message}}"
+  },
+  "upload": {
+    "irysTitle": "通过 Irys 数据链安全上传",
+    "irysDesc": "Irys 在其专用的数据链上提供快速、去中心化的存储。",
+    "arweaveTitle": "Arweave 原生协议",
+    "arweaveDesc": "使用原生交易直接将数据存储在 Arweave 永恒网上。",
+    "chooseFile": "选择文件",
+    "enableEncryption": "强制端到端加密",
+    "irysConnectWallet": "请连接您的以太坊钱包以支付 Irys 存储费用。",
+    "arweaveSelectIdentity": "请在控制面板中选择一个活跃的 Arweave 身份。",
+    "irysSubmit": "加密并上传至 Irys",
+    "arweaveSubmit": "刻录并加密至 Arweave",
+    "uploading": "上传中...",
+    "successArweave": "已上传至 Arweave！",
+    "successIrys": "已上传至 Irys！",
+    "failed": "{{protocol}} 上传失败：{{message}}"
+  }
+}
+

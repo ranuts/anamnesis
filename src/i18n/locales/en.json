@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "Anamnesis",
+    "dashboard": "Dashboard",
+    "upload": "Upload",
+    "activeIdentity": "Active Identity",
+    "noIdentity": "No Identity Selected",
+    "securityNotice": "Security Notice",
+    "securityNoticeDesc": "All files are encrypted in your browser using a unique key derived from your Master Password before they are uploaded. Only you can decrypt them. Make sure you never lose your Master Password!",
+    "footer": "© 2025 Anamnesis — Built with ❤️ for the Permaweb"
+  },
+  "unlock": {
+    "title": "Unlock Identity Layer",
+    "desc": "Unlock your Identity Layer to manage your permaweb records.",
+    "passwordLabel": "Master Password",
+    "passwordPlaceholder": "Enter your master password...",
+    "submit": "Unlock Identity",
+    "warning": "Your password is never sent to any server. It is used locally to derive your encryption keys.",
+    "errorLength": "Password must be at least 8 characters",
+    "success": "Identity Layer unlocked",
+    "failed": "Failed to unlock"
+  },
+  "identities": {
+    "title": "Identities",
+    "desc": "Select or add an Arweave identity",
+    "noWallets": "No identities managed yet.",
+    "new": "New",
+    "import": "Import",
+    "aliasPrompt": "Enter an alias for this wallet:",
+    "successAdded": "Wallet {{alias}} added",
+    "successActive": "Active wallet: {{alias}}",
+    "successGenerated": "New Arweave wallet generated and downloaded!",
+    "errorGenerate": "Failed to generate wallet: {{message}}"
+  },
+  "history": {
+    "title": "Your Permaweb History",
+    "desc": "Files stored via this identity layer. Only files owned by your active identity can be decrypted.",
+    "fileName": "File Name",
+    "protocol": "Protocol",
+    "security": "Security",
+    "action": "Action",
+    "encrypted": "Encrypted",
+    "public": "Public",
+    "noRecords": "No local records found. Syncing history is coming soon.",
+    "errorOwner": "You are not the owner of this record. Please switch to the correct identity.",
+    "errorLocked": "Identity Layer is locked. Unlock to decrypt.",
+    "successDownload": "File decrypted and downloaded",
+    "failedDownload": "Download failed: {{message}}"
+  },
+  "upload": {
+    "irysTitle": "Secure Upload via Irys Datachain",
+    "irysDesc": "Irys provides fast, decentralized storage on their dedicated Datachain.",
+    "arweaveTitle": "Native Arweave Protocol",
+    "arweaveDesc": "Directly store data on the Arweave Permaweb using native transactions.",
+    "chooseFile": "Choose File",
+    "enableEncryption": "Force End-to-End Encryption",
+    "irysConnectWallet": "Please connect your Ethereum wallet to pay for Irys storage.",
+    "arweaveSelectIdentity": "Please select an active Arweave identity in the Dashboard.",
+    "irysSubmit": "Encrypt & Upload to Irys",
+    "arweaveSubmit": "Burn & Encrypt to Arweave",
+    "uploading": "Uploading...",
+    "successArweave": "Uploaded to Arweave!",
+    "successIrys": "Uploaded to Irys!",
+    "failed": "{{protocol}} upload failed: {{message}}"
+  }
+}
+

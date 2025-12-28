@@ -4,6 +4,7 @@ import "./index.css"
 import App from "./App.tsx"
 import { Providers } from "./providers"
 import { Buffer } from "buffer"
+import "./i18n/config"
 
 window.Buffer = window.Buffer || Buffer
 
