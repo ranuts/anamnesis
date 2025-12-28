@@ -1,5 +1,6 @@
-import { db, UploadRecord } from "@/lib/db";
-import { decryptData, fromBase64, fromBytes } from "@/lib/crypto";
+import { db } from "@/lib/db";
+import type { UploadRecord } from "@/lib/db";
+import { decryptData, fromBase64 } from "@/lib/crypto";
 import { Button } from "@/components/ui/button";
 import { Download, ExternalLink, Loader2, Shield } from "lucide-react";
 import { useState } from "react";

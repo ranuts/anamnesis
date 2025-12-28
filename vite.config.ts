@@ -6,7 +6,7 @@ import { nodePolyfills } from "vite-plugin-node-polyfills"
 
 export default defineConfig({
   plugins: [
-    react(),
+    react(), 
     tailwindcss(),
     nodePolyfills({
       globals: {
@@ -20,5 +20,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    include: ["@metamask/sdk"],
   },
 })

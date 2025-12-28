@@ -26,9 +26,9 @@ const db = new Dexie("AnamnesisDB") as Dexie & {
   uploads: EntityTable<UploadRecord, "id">;
 };
 
-db.version(1).stores({
+db.version(2).stores({
   wallets: "++id, address, alias",
-  uploads: "++id, txId, fileHash, ownerAddress, storageType",
+  uploads: "++id, txId, fileHash, ownerAddress, storageType, createdAt",
 });
 
 export { db };

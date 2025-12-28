@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { db, WalletRecord } from "@/lib/db";
+import { db } from "@/lib/db";
+import type { WalletRecord } from "@/lib/db";
 import { deriveKey, encryptData, decryptData, toBase64, fromBase64, toBytes, fromBytes } from "@/lib/crypto";
 import { arweave } from "@/lib/storage";
 import { toast } from "sonner";
