@@ -1,6 +1,6 @@
 import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultConfig, RainbowKitProvider, type Locale } from "@rainbow-me/rainbowkit";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, http } from "wagmi";
 import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from "react";
@@ -8,12 +8,26 @@ import { useTranslation } from "react-i18next";
 
 const config = getDefaultConfig({
   appName: "Anamnesis",
-  projectId: "YOUR_PROJECT_ID", // TODO: Replace with your Reown Project ID
+  projectId: "99c828d18e87483606f30d07521ca486", // Recommended: Use a real Project ID from https://cloud.reown.com/
   chains: [mainnet, polygon, optimism, arbitrum, base],
-  ssr: false, // If your dApp uses server side rendering (SSR)
+  transports: {
+    [mainnet.id]: http(),
+    [polygon.id]: http(),
+    [optimism.id]: http(),
+    [arbitrum.id]: http(),
+    [base.id]: http(),
+  },
+  ssr: false,
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 export function Providers({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
