@@ -4,6 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "license": "AGPL-3.0-or-later",
+  "author": "chaxus",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ranuts/anamnesis.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
