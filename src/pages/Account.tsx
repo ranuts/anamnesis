@@ -7,7 +7,13 @@ import { getBalance, type BalanceResult } from "@/lib/balance"
 import { db } from "@/lib/db"
 import { LogOut, ShieldCheck, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useExternalWallets } from "@/hooks/use-external-wallets"
 import { UnlockForm } from "@/components/account/UnlockForm"
@@ -153,7 +159,8 @@ export default function AccountPage() {
       externalWallets.allEVMAddresses.forEach((address) => {
         if (address && typeof address === "string") {
           const isActive =
-            address.toLowerCase() === externalWallets.paymentAddress?.toLowerCase()
+            address.toLowerCase() ===
+            externalWallets.paymentAddress?.toLowerCase()
           externalAccounts.push({
             id: `external-evm-${address}`,
             chain: "ethereum",
@@ -259,7 +266,11 @@ export default function AccountPage() {
     }
   }
 
-  const refreshBalance = async (chain: string, address: string, isExternal = false) => {
+  const refreshBalance = async (
+    chain: string,
+    address: string,
+    isExternal = false,
+  ) => {
     const key = isExternal
       ? `external-${chain}-${address}`
       : `${chain}-${address}`
@@ -294,22 +305,22 @@ export default function AccountPage() {
       ...localAccounts.map((w) => ({ ...w, isExternal: false })),
       ...externalAccounts.map((acc) => ({
         ...acc,
-            alias:
-              acc.chain === "ethereum"
-                ? t("identities.evmWallet")
-                : acc.chain === "arweave"
-                  ? t("identities.arconnectWallet")
-                  : acc.chain === "solana"
-                    ? t("identities.phantomWallet")
-                    : acc.chain === "sui"
-                      ? t("identities.suiWallet")
-                      : t("identities.externalAccount"),
+        alias:
+          acc.chain === "ethereum"
+            ? t("identities.evmWallet")
+            : acc.chain === "arweave"
+              ? t("identities.arconnectWallet")
+              : acc.chain === "solana"
+                ? t("identities.phantomWallet")
+                : acc.chain === "sui"
+                  ? t("identities.suiWallet")
+                  : t("identities.externalAccount"),
       })),
     ]
 
     const isActive = (account: any) => {
       if (account.isExternal) {
-      return (
+        return (
           !walletManager.activeAddress &&
           (account.chain === "ethereum"
             ? account.address.toLowerCase() ===
@@ -378,12 +389,16 @@ export default function AccountPage() {
         isActive={isActive}
         onSelect={handleSelect}
         onCopyAddress={copyAddress}
-        onShowSensitive={walletManager.isUnlocked ? handleShowSensitive : undefined}
+        onShowSensitive={
+          walletManager.isUnlocked ? handleShowSensitive : undefined
+        }
         onDisconnect={handleDisconnect}
         onToggleBalance={(key, show) => {
           setShowBalances((prev) => ({ ...prev, [key]: show }))
         }}
-        onRefreshBalance={(chain, address, isExternal) => refreshBalance(chain, address, isExternal)}
+        onRefreshBalance={(chain, address, isExternal) =>
+          refreshBalance(chain, address, isExternal)
+        }
         isPaymentConnected={externalWallets.isPaymentConnected}
         connector={connector}
         paymentAddress={externalWallets.paymentAddress}
@@ -427,29 +442,29 @@ export default function AccountPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-            <Tabs defaultValue="ethereum" className="w-full">
+                <Tabs defaultValue="ethereum" className="w-full">
                   <TabsList className="mx-4 mt-4 mb-0 h-auto w-auto flex-wrap justify-start rounded-lg bg-slate-100 p-1">
-                {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
-                  (chain) => (
-                    <TabsTrigger
-                      key={chain}
-                      value={chain}
+                    {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
+                      (chain) => (
+                        <TabsTrigger
+                          key={chain}
+                          value={chain}
                           className="rounded-md px-4 py-2 text-xs font-semibold capitalize data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
-                    >
-                      {chain}
-                    </TabsTrigger>
-                  ),
-                )}
-              </TabsList>
+                        >
+                          {chain}
+                        </TabsTrigger>
+                      ),
+                    )}
+                  </TabsList>
                   <TabsContent value="ethereum" className="px-4 pt-4 pb-4">
-                {renderAccountList("ethereum")}
-              </TabsContent>
+                    {renderAccountList("ethereum")}
+                  </TabsContent>
                   <TabsContent value="bitcoin" className="px-4 pt-4 pb-4">
-                {renderAccountList("bitcoin")}
-              </TabsContent>
+                    {renderAccountList("bitcoin")}
+                  </TabsContent>
                   <TabsContent value="solana" className="px-4 pt-4 pb-4">
-                {renderAccountList("solana")}
-              </TabsContent>
+                    {renderAccountList("solana")}
+                  </TabsContent>
                   <TabsContent value="sui" className="px-4 pt-4 pb-4">
                     {renderAccountList("sui")}
                   </TabsContent>
@@ -457,7 +472,7 @@ export default function AccountPage() {
                     {renderAccountList("arweave")}
                   </TabsContent>
                 </Tabs>
-                </CardContent>
+              </CardContent>
             </Card>
 
             <AddAccountSection

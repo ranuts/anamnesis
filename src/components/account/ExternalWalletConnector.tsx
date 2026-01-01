@@ -86,9 +86,7 @@ export function ExternalWalletConnector({
                 <div className="flex flex-1 flex-col items-start">
                   <span
                     className={`text-sm font-semibold ${
-                      isPaymentConnected
-                        ? "text-green-700"
-                        : "text-slate-700"
+                      isPaymentConnected ? "text-green-700" : "text-slate-700"
                     }`}
                   >
                     {isPaymentConnected
@@ -150,9 +148,7 @@ export function ExternalWalletConnector({
             </span>
             <span
               className={`text-xs ${
-                isArConnected
-                  ? "font-mono text-green-600"
-                  : "text-slate-500"
+                isArConnected ? "font-mono text-green-600" : "text-slate-500"
               }`}
             >
               {isArConnected
@@ -198,9 +194,7 @@ export function ExternalWalletConnector({
             </span>
             <span
               className={`text-xs ${
-                isSolConnected
-                  ? "font-mono text-green-600"
-                  : "text-slate-500"
+                isSolConnected ? "font-mono text-green-600" : "text-slate-500"
               }`}
             >
               {isSolConnected
@@ -246,9 +240,7 @@ export function ExternalWalletConnector({
             </span>
             <span
               className={`text-xs ${
-                isSuiConnected
-                  ? "font-mono text-green-600"
-                  : "text-slate-500"
+                isSuiConnected ? "font-mono text-green-600" : "text-slate-500"
               }`}
             >
               {isSuiConnected
@@ -266,4 +258,3 @@ export function ExternalWalletConnector({
     </div>
   )
 }
-

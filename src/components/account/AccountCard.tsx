@@ -1,4 +1,11 @@
-import { Copy, Key, FileText, Unlink, ExternalLink, UserCheck } from "lucide-react"
+import {
+  Copy,
+  Key,
+  FileText,
+  Unlink,
+  ExternalLink,
+  UserCheck,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { BalanceDisplay } from "./BalanceDisplay"
@@ -81,10 +88,7 @@ export function AccountCard({
       }`}
       onClick={(e) => {
         const target = e.target as HTMLElement
-        if (
-          target.closest("button") ||
-          target.closest('[role="button"]')
-        ) {
+        if (target.closest("button") || target.closest('[role="button"]')) {
           return
         }
         onSelect()
@@ -194,7 +198,10 @@ export function AccountCard({
                                   },
                                 )
                               } catch (error) {
-                                console.error("Failed to switch account:", error)
+                                console.error(
+                                  "Failed to switch account:",
+                                  error,
+                                )
                                 openAccountModal()
                                 toast.error(t("identities.switchAccountFailed"))
                               }
@@ -268,4 +275,3 @@ export function AccountCard({
     </div>
   )
 }
-

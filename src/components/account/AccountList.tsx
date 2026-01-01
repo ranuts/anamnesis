@@ -24,7 +24,11 @@ interface AccountListProps {
   onShowSensitive?: (account: Account, type: "key" | "mnemonic") => void
   onDisconnect?: (account: Account) => void
   onToggleBalance: (key: string, show: boolean) => void
-  onRefreshBalance: (chain: string, address: string, isExternal?: boolean) => Promise<void>
+  onRefreshBalance: (
+    chain: string,
+    address: string,
+    isExternal?: boolean,
+  ) => Promise<void>
   // External account props
   isPaymentConnected?: boolean
   connector?: any
@@ -83,12 +87,18 @@ export function AccountList({
             showBalance={showBalances[key] || false}
             onToggleBalance={(show) => onToggleBalance(key, show)}
             onRefreshBalance={async () => {
-              await onRefreshBalance(account.chain, account.address, account.isExternal)
+              await onRefreshBalance(
+                account.chain,
+                account.address,
+                account.isExternal,
+              )
             }}
             onSelect={() => onSelect(account)}
             onCopyAddress={onCopyAddress}
             onShowSensitive={onShowSensitive}
-            onDisconnect={onDisconnect ? () => onDisconnect(account) : undefined}
+            onDisconnect={
+              onDisconnect ? () => onDisconnect(account) : undefined
+            }
             isPaymentConnected={isPaymentConnected}
             connector={connector}
             paymentAddress={paymentAddress}
@@ -98,4 +108,3 @@ export function AccountList({
     </div>
   )
 }
-

@@ -69,11 +69,23 @@ export function AddAccountSection({
   }
 
   const chains = [
-    { id: "ethereum", name: "Ethereum", icon: <EthereumIcon className="h-5 w-5" /> },
-    { id: "bitcoin", name: "Bitcoin", icon: <BitcoinIcon className="h-5 w-5" /> },
+    {
+      id: "ethereum",
+      name: "Ethereum",
+      icon: <EthereumIcon className="h-5 w-5" />,
+    },
+    {
+      id: "bitcoin",
+      name: "Bitcoin",
+      icon: <BitcoinIcon className="h-5 w-5" />,
+    },
     { id: "solana", name: "Solana", icon: <SolanaIcon className="h-5 w-5" /> },
     { id: "sui", name: "Sui", icon: <SuiIcon className="h-5 w-5" /> },
-    { id: "arweave", name: "Arweave", icon: <ArweaveIcon className="h-5 w-5" /> },
+    {
+      id: "arweave",
+      name: "Arweave",
+      icon: <ArweaveIcon className="h-5 w-5" />,
+    },
   ]
 
   return (
@@ -201,4 +213,3 @@ export function AddAccountSection({
     </Card>
   )
 }
-

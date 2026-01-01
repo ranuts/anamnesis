@@ -40,7 +40,11 @@ export function BalanceDisplay({
       <button
         onClick={handleToggle}
         className="shrink-0 p-1 text-slate-400 transition-colors hover:text-indigo-600"
-        title={showBalance ? t("identities.hideBalance") : t("identities.showBalance")}
+        title={
+          showBalance
+            ? t("identities.hideBalance")
+            : t("identities.showBalance")
+        }
       >
         {showBalance ? (
           <EyeOff className="h-3.5 w-3.5" />
@@ -65,4 +69,3 @@ export function BalanceDisplay({
     </div>
   )
 }
-

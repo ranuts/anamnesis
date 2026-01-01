@@ -121,7 +121,9 @@ export function SensitiveInfoDialog({
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
-                {type === "key" ? t("identities.privateKey") : t("identities.mnemonic")}
+                {type === "key"
+                  ? t("identities.privateKey")
+                  : t("identities.mnemonic")}
               </label>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <p className="font-mono text-sm break-all text-slate-900">
@@ -138,4 +140,3 @@ export function SensitiveInfoDialog({
     </Dialog>
   )
 }
-
