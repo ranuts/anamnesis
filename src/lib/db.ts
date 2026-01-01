@@ -3,9 +3,10 @@ import Dexie, { type EntityTable } from "dexie"
 export interface WalletRecord {
   id?: number
   address: string
-  encryptedKey: string // JWK encrypted with Master Password
+  encryptedKey: string // Encrypted with Master Password
   alias: string
-  type: "jwk" | "mnemonic"
+  chain: "ethereum" | "arweave" | "solana" | "sui" | "other"
+  vaultId: string // Hash of the derived key to separate "compartments"
   createdAt: number
 }
 
@@ -32,30 +33,9 @@ const db = new Dexie("AnamnesisDB") as Dexie & {
   vault: EntityTable<VaultMetadata, "key">
 }
 
-db.version(1).stores({
-  wallets: "++id, address, alias",
-  uploads: "++id, txId, fileHash, ownerAddress, storageType",
-})
-
-db.version(2)
-  .stores({
-    wallets: "++id, address, alias",
-    uploads: "++id, txId, fileHash, ownerAddress, storageType, createdAt",
-  })
-  .upgrade((tx) => {
-    return tx
-      .table("uploads")
-      .toCollection()
-      .modify((upload) => {
-        if (!upload.createdAt) {
-          upload.createdAt = Date.now()
-        }
-      })
-  })
-
-// 增加 Vault 配置表用于验证密码
-db.version(3).stores({
-  wallets: "++id, address, alias",
+// 增加多链支持和金库标识
+db.version(4).stores({
+  wallets: "++id, address, alias, chain, vaultId",
   uploads: "++id, txId, fileHash, ownerAddress, storageType, createdAt",
   vault: "key",
 })

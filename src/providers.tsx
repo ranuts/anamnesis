@@ -9,10 +9,11 @@ import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains"
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query"
 import { ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "@/i18n/config"
+import { WalletProvider } from "@/providers/wallet-provider"
 
 const config = getDefaultConfig({
   appName: "Anamnesis",
-  projectId: "99c828d18e87483606f30d07521ca486", // Recommended: Use a real Project ID from https://cloud.reown.com/
+  projectId: "YOUR_PROJECT_ID", // Replace with your actual project ID
   chains: [mainnet, polygon, optimism, arbitrum, base],
   transports: {
     [mainnet.id]: http(),
@@ -27,7 +28,7 @@ const config = getDefaultConfig({
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
+      staleTime: 60 * 1000,
       retry: 1,
     },
   },
@@ -46,7 +47,11 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider locale={locale}>{children}</RainbowKitProvider>
+        <RainbowKitProvider locale={locale}>
+          <WalletProvider>
+            {children}
+          </WalletProvider>
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )

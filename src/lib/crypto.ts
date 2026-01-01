@@ -11,7 +11,6 @@ export const initSodium = async () => {
 
 /**
  * 使用浏览器原生的 Web Crypto API (PBKDF2) 派生密钥
- * 这比依赖 libsodium 的 pwhash 更稳定，且无需额外的 WASM 负载
  */
 export const deriveKey = async (password: string, salt: Uint8Array) => {
   const enc = new TextEncoder()
@@ -31,7 +30,7 @@ export const deriveKey = async (password: string, salt: Uint8Array) => {
       hash: "SHA-256",
     },
     keyMaterial,
-    { name: "AES-GCM", length: 256 }, // 我们只需要 256 位（32 字节）的原始数据
+    { name: "AES-GCM", length: 256 },
     true,
     ["encrypt", "decrypt"],
   )
@@ -68,6 +67,13 @@ export const decryptData = async (
     console.error("Decryption failed:", e)
     throw new Error("Decryption failed. Wrong password?")
   }
+}
+
+// Helper: Uint8Array to Hex
+export const toHex = (bytes: Uint8Array) => {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
 }
 
 // Helper to convert string to Uint8Array
