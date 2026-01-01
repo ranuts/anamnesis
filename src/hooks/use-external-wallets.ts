@@ -66,26 +66,6 @@ export function useExternalWallets() {
     }
   }, [])
 
-  // 检查 Sui 连接
-  const checkSuiConnect = useCallback(async () => {
-    const suiWallet = (window as any).suiWallet
-    if (suiWallet) {
-      try {
-        const accounts = await suiWallet.getAccounts()
-        if (accounts && accounts.length > 0) {
-          setSuiAddress(accounts[0])
-          setIsSuiConnected(true)
-        }
-      } catch (e) {
-        setIsSuiConnected(false)
-        setSuiAddress(null)
-      }
-    } else {
-      setIsSuiConnected(false)
-      setSuiAddress(null)
-    }
-  }, [])
-
   // 连接 Arweave
   const connectArweave = useCallback(async () => {
     if (!window.arweaveWallet) {
