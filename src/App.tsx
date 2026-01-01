@@ -20,7 +20,7 @@ export default function App() {
   if (!mounted) return null
 
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <AppLayout>
         <Routes>
           <Route path="/" element={<DashboardPage />} />

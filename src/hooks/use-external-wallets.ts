@@ -44,17 +44,19 @@ export function useExternalWallets() {
     }
   }, [])
 
-  // 检查 Solana 连接
+  // 检查 Solana 连接 (静默检查)
   const checkSolConnect = useCallback(async () => {
     const solana = (window as any).solana
     if (solana && solana.isPhantom) {
       try {
-        const resp = await solana.connect({ onlyIfTrusted: false })
+        // 使用 onlyIfTrusted: true 进行静默检查，不会触发授权弹窗
+        const resp = await solana.connect({ onlyIfTrusted: true })
         if (resp?.publicKey) {
           setSolAddress(resp.publicKey.toString())
           setIsSolConnected(true)
         }
       } catch (e) {
+        // 如果未授权或失败，保持断开状态
         setIsSolConnected(false)
         setSolAddress(null)
       }
@@ -295,16 +297,19 @@ export function useExternalWallets() {
 
   // 监听 Arweave 切换
   useEffect(() => {
-    checkArConnect()
+    // 移除了初始挂载时的 checkArConnect()，避免在未操作时触发可能的插件弹窗
+    // 只在插件发出 walletSwitch 事件时进行检查
     window.addEventListener("walletSwitch", checkArConnect)
     return () => window.removeEventListener("walletSwitch", checkArConnect)
   }, [checkArConnect])
 
-  // 检查 Solana 和 Sui 连接
+  // 检查 Solana 连接 (仅在挂载时尝试静默恢复)
   useEffect(() => {
     checkSolConnect()
-    checkSuiConnect()
-  }, [checkSolConnect, checkSuiConnect])
+  }, [checkSolConnect])
+
+  // 移除了初始挂载时的 checkSuiConnect()，避免自动触发可能的授权请求
+  // 用户需要点击“连接”按钮来触发授权
 
   return {
     // EVM
