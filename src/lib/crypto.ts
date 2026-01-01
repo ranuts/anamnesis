@@ -1,34 +1,56 @@
-import _sodium from "libsodium-wrappers"
+import sodium from "libsodium-wrappers"
 
-let sodium: typeof _sodium
+let _s: any = null
 
 export const initSodium = async () => {
-  if (!sodium) {
-    await _sodium.ready
-    sodium = _sodium
-  }
-  return sodium
+  if (_s) return _s
+  await sodium.ready
+  _s = (sodium as any).default || sodium
+  return _s
 }
 
-// Derive a secret key from a master password using Argon2
+/**
+ * 使用浏览器原生的 Web Crypto API (PBKDF2) 派生密钥
+ * 这比依赖 libsodium 的 pwhash 更稳定，且无需额外的 WASM 负载
+ */
 export const deriveKey = async (password: string, salt: Uint8Array) => {
-  const s = await initSodium()
-  return s.crypto_pwhash(
-    s.crypto_secretbox_KEYBYTES,
-    password,
-    salt,
-    s.crypto_pwhash_OPSLIMIT_INTERACTIVE,
-    s.crypto_pwhash_MEMLIMIT_INTERACTIVE,
-    s.crypto_pwhash_ALG_ARGON2ID13,
+  const enc = new TextEncoder()
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits", "deriveKey"],
   )
+
+  const derivedKey = await window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 }, // 我们只需要 256 位（32 字节）的原始数据
+    true,
+    ["encrypt", "decrypt"],
+  )
+
+  const rawKey = await window.crypto.subtle.exportKey("raw", derivedKey)
+  return new Uint8Array(rawKey)
 }
 
 // Encrypt data with a key
 export const encryptData = async (data: Uint8Array, key: Uint8Array) => {
   const s = await initSodium()
-  const nonce = s.randombytes_buf(s.crypto_secretbox_NONCEBYTES)
-  const ciphertext = s.crypto_secretbox_easy(data, nonce, key)
-  return { ciphertext, nonce }
+  try {
+    const nonce = s.randombytes_buf(s.crypto_secretbox_NONCEBYTES)
+    const ciphertext = s.crypto_secretbox_easy(data, nonce, key)
+    return { ciphertext, nonce }
+  } catch (e) {
+    console.error("Encryption failed:", e)
+    throw e
+  }
 }
 
 // Decrypt data with a key
@@ -39,8 +61,11 @@ export const decryptData = async (
 ) => {
   const s = await initSodium()
   try {
-    return s.crypto_secretbox_open_easy(ciphertext, nonce, key)
+    const result = s.crypto_secretbox_open_easy(ciphertext, nonce, key)
+    if (!result) throw new Error("Decryption returned null (wrong key/nonce)")
+    return result
   } catch (e) {
+    console.error("Decryption failed:", e)
     throw new Error("Decryption failed. Wrong password?")
   }
 }

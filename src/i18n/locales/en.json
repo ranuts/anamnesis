@@ -3,6 +3,7 @@
     "appName": "Anamnesis",
     "dashboard": "Dashboard",
     "upload": "Upload",
+    "account": "Account",
     "activeIdentity": "Secure Vault Active",
     "identityLocked": "Privacy Layer Locked (Optional)",
     "noIdentity": "No Identity Selected",
@@ -14,14 +15,22 @@
   },
   "unlock": {
     "title": "Activate Secure Vault",
-    "desc": "Set a Master Password to enable E2EE and persistent identities.",
+    "desc": "Enter your master password to unlock identities and enable file encryption.",
+    "initTitle": "Initialize Privacy Vault",
+    "initDesc": "This is your first time. Set a master password to protect your identities and enable end-to-end file encryption.",
     "passwordLabel": "Master Password",
-    "passwordPlaceholder": "Set/Enter master password...",
+    "passwordPlaceholder": "Enter master password...",
+    "passwordPlaceholderInit": "Set master password (min 8 chars)...",
     "submit": "Activate Privacy",
+    "submitInit": "Set Password & Initialize",
     "warning": "Your password is never sent to any server. It is used locally to derive your encryption keys.",
+    "forgotWarning": "⚠️ Important: If you forget this password, you will lose access to your encrypted files and saved identities forever.",
+    "securityNote": "Security Note:",
     "errorLength": "Password must be at least 8 characters",
     "success": "Identity Layer unlocked",
-    "failed": "Failed to unlock"
+    "successInit": "Master password set and vault initialized",
+    "failed": "Failed to unlock",
+    "incorrect": "Incorrect master password"
   },
   "identities": {
     "title": "Identities",
@@ -51,21 +60,23 @@
     "failedDownload": "Download failed: {{message}}"
   },
   "upload": {
-    "irysTitle": "Secure Upload via Irys Datachain",
+    "irysTitle": "Upload via Irys Datachain",
     "irysDesc": "Irys provides fast, decentralized storage on their dedicated Datachain.",
     "arweaveTitle": "Native Arweave Protocol",
     "arweaveDesc": "Directly store data on the Arweave Permaweb using native transactions.",
     "chooseFile": "Choose File",
-    "enableEncryption": "Force End-to-End Encryption",
-    "irysConnectWallet": "Please connect your Ethereum wallet to pay for Irys storage.",
+    "enableEncryption": "Enable End-to-End Encryption",
+    "irysConnectWallet": "Please connect your Ethereum wallet to pay for storage.",
     "arweaveSelectIdentity": "Select or add an Arweave identity:",
-    "arweaveNoIdentity": "No Arweave identity found. Create or import one to continue:",
+    "arweaveNoIdentity": "No identity found. Create or import one to continue:",
     "arweaveLockedHint": "Privacy Vault is locked. Activate to manage identities and enable encrypted uploads.",
     "irysSubmit": "Encrypt & Upload to Irys",
+    "irysSubmitPublic": "Upload to Irys (Public)",
     "arweaveSubmit": "Burn & Encrypt to Arweave",
     "uploading": "Uploading...",
     "successArweave": "Uploaded to Arweave!",
     "successIrys": "Uploaded to Irys!",
-    "failed": "{{protocol}} upload failed: {{message}}"
+    "failed": "{{protocol}} upload failed: {{message}}",
+    "goToAccount": "Go to Account"
   }
 }

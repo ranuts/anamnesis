@@ -3,6 +3,7 @@
     "appName": "Anamnesis",
     "dashboard": "控制面板",
     "upload": "上传",
+    "account": "账户管理",
     "activeIdentity": "隐私保险箱已开启",
     "identityLocked": "隐私层已锁定 (可选)",
     "noIdentity": "未选择身份",
@@ -14,14 +15,22 @@
   },
   "unlock": {
     "title": "开启隐私保险箱",
-    "desc": "设置主密码以启用端到端加密和身份持久化。",
+    "desc": "输入主密码以解密身份层并启用文件加密。",
+    "initTitle": "初始化隐私保险箱",
+    "initDesc": "这是您第一次使用。请设置一个主密码，用于保护您的身份信息并启用文件端到端加密。",
     "passwordLabel": "主密码",
-    "passwordPlaceholder": "设置/输入主密码...",
+    "passwordPlaceholder": "输入您的主密码...",
+    "passwordPlaceholderInit": "设置您的主密码（至少 8 位）...",
     "submit": "开启隐私层",
+    "submitInit": "设置密码并初始化",
     "warning": "您的密码永远不会发送到任何服务器。它仅在本地用于派生您的加密密钥。",
+    "forgotWarning": "⚠️ 重要：如果您忘记此密码，您将永远失去对已加密文件和已存身份的访问权限。",
+    "securityNote": "安全提示：",
     "errorLength": "密码长度必须至少为 8 个字符",
     "success": "身份层已解锁",
-    "failed": "解锁失败"
+    "successInit": "主密码设置成功，保险箱已初始化",
+    "failed": "解锁失败",
+    "incorrect": "主密码错误"
   },
   "identities": {
     "title": "身份管理",
@@ -51,21 +60,23 @@
     "failedDownload": "下载失败：{{message}}"
   },
   "upload": {
-    "irysTitle": "通过 Irys 数据链安全上传",
-    "irysDesc": "Irys 在其专用的数据链上提供快速、去中心化的存储。",
+    "irysTitle": "通过 Irys 数据链上传",
+    "irysDesc": "Irys 提供快速、去中心化的存储体验。",
     "arweaveTitle": "Arweave 原生协议",
-    "arweaveDesc": "使用原生交易直接将数据存储在 Arweave 永恒网上。",
+    "arweaveDesc": "直接将数据永久刻录在 Arweave 主网上。",
     "chooseFile": "选择文件",
-    "enableEncryption": "强制端到端加密",
-    "irysConnectWallet": "请连接您的以太坊钱包以支付 Irys 存储费用。",
+    "enableEncryption": "开启端到端加密",
+    "irysConnectWallet": "请连接以太坊钱包以支付存储费。",
     "arweaveSelectIdentity": "请选择或添加一个 Arweave 身份：",
-    "arweaveNoIdentity": "尚未发现 Arweave 身份，请创建一个或导入已有密钥：",
-    "arweaveLockedHint": "隐私保险箱已锁定。开启后即可管理 Arweave 身份并启用加密上传。",
+    "arweaveNoIdentity": "尚未发现身份，请创建一个或导入密钥：",
+    "arweaveLockedHint": "隐私保险箱已锁定。开启后即可管理身份并启用加密上传。",
     "irysSubmit": "加密并上传至 Irys",
+    "irysSubmitPublic": "上传至 Irys (公开)",
     "arweaveSubmit": "刻录并加密至 Arweave",
     "uploading": "上传中...",
     "successArweave": "已上传至 Arweave！",
     "successIrys": "已上传至 Irys！",
-    "failed": "{{protocol}} 上传失败：{{message}}"
+    "failed": "{{protocol}} 上传失败：{{message}}",
+    "goToAccount": "前往账户管理"
   }
 }

@@ -21,9 +21,15 @@ export interface UploadRecord {
   createdAt: number
 }
 
+export interface VaultMetadata {
+  key: string
+  value: string // JSON string of encrypted canary
+}
+
 const db = new Dexie("AnamnesisDB") as Dexie & {
   wallets: EntityTable<WalletRecord, "id">
   uploads: EntityTable<UploadRecord, "id">
+  vault: EntityTable<VaultMetadata, "key">
 }
 
 db.version(1).stores({
@@ -46,5 +52,12 @@ db.version(2)
         }
       })
   })
+
+// 增加 Vault 配置表用于验证密码
+db.version(3).stores({
+  wallets: "++id, address, alias",
+  uploads: "++id, txId, fileHash, ownerAddress, storageType, createdAt",
+  vault: "key",
+})
 
 export { db }
