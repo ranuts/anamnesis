@@ -58,95 +58,110 @@ export function HistoryTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200">
-      <table className="w-full text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50">
-          <tr>
-            <th className="p-3 text-left font-medium text-slate-500">
-              {t("history.fileName")}
-            </th>
-            <th className="p-3 text-left font-medium text-slate-500">
-              {t("history.protocol")}
-            </th>
-            <th className="p-3 text-left font-medium text-slate-500">
-              {t("history.security")}
-            </th>
-            <th className="p-3 text-right font-medium text-slate-500">
-              {t("history.action")}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {records.map((r) => (
-            <tr key={r.txId} className="transition-colors hover:bg-slate-50">
-              <td className="max-w-[150px] truncate p-3 font-medium">
-                {r.fileName}
-              </td>
-              <td className="p-3">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                    r.storageType === "arweave"
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-blue-100 text-blue-700"
-                  }`}
-                >
-                  {r.storageType === "arweave"
-                    ? "Arweave Native"
-                    : "Irys Datachain"}
-                </span>
-              </td>
-              <td className="p-3">
-                {r.encryptionAlgo !== "none" ? (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <Shield className="h-3 w-3" />
-                    <span className="text-[10px]">
-                      {t("history.encrypted")}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-slate-400">
-                    {t("history.public")}
-                  </span>
-                )}
-              </td>
-              <td className="space-x-2 p-3 text-right">
-                <Button variant="ghost" size="icon" asChild>
-                  <a
-                    href={`https://arweave.net/${r.txId}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleDownload(r)}
-                  disabled={
-                    !!downloading || (r.encryptionAlgo !== "none" && !masterKey)
-                  }
-                >
-                  {downloading === r.txId ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : r.encryptionAlgo !== "none" && !masterKey ? (
-                    <Shield className="h-4 w-4 text-slate-400" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                </Button>
-              </td>
-            </tr>
-          ))}
-          {records.length === 0 && (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold tracking-wider text-slate-400 uppercase sm:text-xs">
             <tr>
-              <td colSpan={4} className="p-8 text-center text-slate-400 italic">
-                {t("history.noRecords")}
-              </td>
+              <th className="px-4 py-3 sm:px-6">{t("history.fileName")}</th>
+              <th className="hidden px-4 py-3 sm:table-cell sm:px-6">
+                {t("history.protocol")}
+              </th>
+              <th className="px-4 py-3 sm:px-6">{t("history.security")}</th>
+              <th className="px-4 py-3 text-right sm:px-6">
+                {t("history.action")}
+              </th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-50 text-xs sm:text-sm">
+            {records.map((r) => (
+              <tr
+                key={r.txId}
+                className="group transition-colors hover:bg-slate-50/50"
+              >
+                <td className="max-w-[120px] truncate px-4 py-4 font-bold text-slate-900 sm:max-w-[200px] sm:px-6">
+                  {r.fileName}
+                </td>
+                <td className="hidden px-4 py-4 sm:table-cell sm:px-6">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ring-inset ${
+                      r.storageType === "arweave"
+                        ? "bg-orange-50 text-orange-700 ring-orange-200"
+                        : "bg-blue-50 text-blue-700 ring-blue-200"
+                    }`}
+                  >
+                    {r.storageType === "arweave" ? "Arweave" : "Irys"}
+                  </span>
+                </td>
+                <td className="px-4 py-4 sm:px-6">
+                  {r.encryptionAlgo !== "none" ? (
+                    <div className="flex items-center gap-1.5 text-green-600">
+                      <Shield className="h-3.5 w-3.5" />
+                      <span className="hidden text-[10px] font-bold uppercase sm:inline">
+                        {t("history.encrypted")}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                      {t("history.public")}
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-4 text-right sm:px-6">
+                  <div className="flex items-center justify-end gap-1 sm:gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="h-8 w-8 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 sm:h-9 sm:w-9"
+                    >
+                      <a
+                        href={`https://arweave.net/${r.txId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDownload(r)}
+                      disabled={
+                        !!downloading ||
+                        (r.encryptionAlgo !== "none" && !masterKey)
+                      }
+                      className={`h-8 w-8 transition-all sm:h-9 sm:w-9 ${
+                        downloading === r.txId
+                          ? "border-indigo-200 bg-indigo-50"
+                          : ""
+                      }`}
+                    >
+                      {downloading === r.txId ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                      ) : r.encryptionAlgo !== "none" && !masterKey ? (
+                        <Shield className="h-4 w-4 text-slate-300" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {records.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-12 text-center text-sm font-medium text-slate-400 italic sm:px-6"
+                >
+                  {t("history.noRecords")}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

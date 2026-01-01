@@ -28,7 +28,7 @@ export function UnlockForm({ onUnlock }: UnlockFormProps) {
 
   return (
     <Card className="overflow-hidden border-indigo-100 shadow-xl">
-      <div className="h-2 w-full bg-gradient-to-r from-indigo-600 to-violet-700" />
+      <div className="h-2 w-full bg-linear-to-r from-indigo-600 to-violet-700" />
       <CardHeader className="pt-8 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50">
           <Lock className="h-8 w-8 text-indigo-600" />
