@@ -1,11 +1,9 @@
 import { Eye, EyeOff } from "lucide-react"
-import { getBalance, type BalanceResult } from "@/lib/balance"
-import { useState } from "react"
+import { type BalanceResult } from "@/lib/balance"
 import { useTranslation } from "@/i18n/config"
 
 interface BalanceDisplayProps {
   chain: string
-  address: string
   balance: BalanceResult | null
   loading: boolean
   showBalance: boolean
@@ -15,7 +13,6 @@ interface BalanceDisplayProps {
 
 export function BalanceDisplay({
   chain,
-  address,
   balance,
   loading,
   showBalance,

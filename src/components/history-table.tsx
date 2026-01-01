@@ -1,4 +1,3 @@
-import { db } from "@/lib/db"
 import type { UploadRecord } from "@/lib/db"
 import { decryptData, fromBase64 } from "@/lib/crypto"
 import { Button } from "@/components/ui/button"

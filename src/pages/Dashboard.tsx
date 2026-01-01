@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { History, Lock, ShieldCheck, LayoutDashboard } from "lucide-react"
+import { History, Lock, LayoutDashboard } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 

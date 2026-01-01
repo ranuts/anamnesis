@@ -75,7 +75,6 @@ export function AccountCard({
   onDisconnect,
   isPaymentConnected,
   connector,
-  paymentAddress,
 }: AccountCardProps) {
   const { t } = useTranslation()
 
@@ -140,7 +139,6 @@ export function AccountCard({
               </div>
               <BalanceDisplay
                 chain={account.chain}
-                address={account.address}
                 balance={balance}
                 loading={loading}
                 showBalance={showBalance}

@@ -1,8 +1,7 @@
 import { Wallet } from "lucide-react"
 import { useTranslation } from "@/i18n/config"
 import { AccountCard } from "./AccountCard"
-import { getBalance, type BalanceResult } from "@/lib/balance"
-import { toast } from "sonner"
+import { type BalanceResult } from "@/lib/balance"
 
 interface Account {
   id?: string

@@ -25,7 +25,6 @@ interface SensitiveInfoDialogProps {
 export function SensitiveInfoDialog({
   open,
   onOpenChange,
-  account,
   type,
   onVerify,
 }: SensitiveInfoDialogProps) {

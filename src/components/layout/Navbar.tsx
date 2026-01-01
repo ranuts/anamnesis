@@ -7,11 +7,9 @@ import {
   ShieldCheck,
   CreditCard,
   User,
-  Bitcoin,
 } from "lucide-react"
 import { useTranslation } from "@/i18n/config"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { useAccount } from "wagmi"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useWalletManager } from "@/hooks/use-wallet-manager"
 import {
@@ -26,8 +24,6 @@ export function Navbar() {
   const { t } = useTranslation()
   const location = useLocation()
   const walletManager = useWalletManager()
-  const { address: paymentAddress, isConnected: isPaymentConnected } =
-    useAccount()
 
   const navItems = [
     { path: "/", label: t("common.dashboard"), icon: LayoutDashboard },
@@ -116,17 +112,16 @@ export function Navbar() {
               {({
                 account,
                 chain,
-                openAccountModal,
                 openConnectModal,
                 mounted,
               }) => {
                 const ready = mounted
-                const connected = ready && account && chain
+                const connected = ready && !!account && !!chain
                 const hasLocalAccount =
-                  walletManager.isUnlocked && walletManager.activeAddress
+                  walletManager.isUnlocked && !!walletManager.activeAddress
 
                 // 如果有本地账户激活，显示本地账户
-                if (hasLocalAccount && activeAccount) {
+                if (hasLocalAccount && activeAccount && walletManager.activeAddress) {
                   return (
                     <Link
                       to="/account"
@@ -156,6 +151,7 @@ export function Navbar() {
                       })}
                     >
                       <button
+                        type="button"
                         onClick={openConnectModal}
                         className="flex items-center gap-2 rounded-full border border-dashed border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-500 active:scale-95"
                       >
@@ -166,7 +162,7 @@ export function Navbar() {
                 }
 
                 // 如果已解锁但没有本地账户激活，但外部账户已连接，显示外部账户
-                if (!hasLocalAccount && connected) {
+                if (!hasLocalAccount && connected && account && chain) {
                   return (
                     <Link
                       to="/account"

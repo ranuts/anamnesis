@@ -1,6 +1,7 @@
 import Arweave from "arweave"
 import { WebIrys } from "@irys/sdk"
 import { BrowserProvider } from "ethers"
+import { Buffer } from "buffer"
 import { db } from "./db"
 import { encryptData, toBase64 } from "./crypto"
 
@@ -121,7 +122,7 @@ export const uploadToIrys = async (
       tags.push({ name: "Encryption-Params", value: encryptionInfo.params })
     }
 
-    const receipt = await irys.upload(data, { tags })
+    const receipt = await irys.upload(Buffer.from(data), { tags })
 
     await db.uploads.add({
       txId: receipt.id,

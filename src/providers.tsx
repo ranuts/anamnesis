@@ -7,7 +7,7 @@ import {
 import { WagmiProvider, http } from "wagmi"
 import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains"
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query"
-import { ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "@/i18n/config"
 import { WalletProvider } from "@/providers/wallet-provider"
 

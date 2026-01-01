@@ -30,11 +30,6 @@ export default function AccountPage() {
   // 使用外部钱包 hook
   const externalWallets = useExternalWallets()
 
-  // 表单状态
-  const [password, setPassword] = useState("")
-  const [newAccountInput, setNewAccountInput] = useState("")
-  const [newAccountAlias, setNewAccountAlias] = useState("")
-
   // 敏感信息对话框
   const [showSensitiveDialog, setShowSensitiveDialog] = useState(false)
   const [sensitiveAccount, setSensitiveAccount] = useState<any>(null)
@@ -235,7 +230,7 @@ export default function AccountPage() {
       `${chain.toUpperCase()}-Account`,
     )
     if (!alias) return
-    await walletManager.createWallet(chain, alias)
+    await walletManager.createWallet(chain as any, alias)
   }
 
   const copyAddress = (address: string) => {
@@ -302,7 +297,11 @@ export default function AccountPage() {
     )
 
     const allAccounts = [
-      ...localAccounts.map((w) => ({ ...w, isExternal: false })),
+      ...localAccounts.map((w) => ({
+        ...w,
+        id: w.id?.toString(),
+        isExternal: false,
+      })),
       ...externalAccounts.map((acc) => ({
         ...acc,
         alias:
