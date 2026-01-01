@@ -4,16 +4,53 @@ import { defineConfig } from "vite"
 import tailwindcss from "@tailwindcss/vite"
 import { nodePolyfills } from "vite-plugin-node-polyfills"
 import wasm from "vite-plugin-wasm"
-import topLevelAwait from "vite-plugin-top-level-await"
 import { VitePWA } from "vite-plugin-pwa"
 
 export default defineConfig(({ isSsrBuild }) => ({
   base: "/anamnesis/",
+  // Ensure native top-level await support in production output.
+  // This avoids runtime races from shimmed TLA wrappers (e.g. __tla.then(...)) in split chunks.
+  build: {
+    target: "es2022",
+    rollupOptions: {
+      output: {
+        // 核心拆包策略
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            // 将大型 Web3 SDK 分离
+            if (id.includes("@solana")) return "vendor-solana"
+            if (id.includes("@mysten") || id.includes("sui"))
+              return "vendor-sui"
+            if (id.includes("@irys") || id.includes("arweave"))
+              return "vendor-arweave"
+            if (id.includes("bitcoinjs-lib") || id.includes("tiny-secp256k1"))
+              return "vendor-bitcoin"
+            if (
+              id.includes("ethers") ||
+              id.includes("viem") ||
+              id.includes("wagmi")
+            )
+              return "vendor-evm"
+            if (id.includes("@metamask")) return "vendor-metamask"
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router")
+            )
+              return "vendor-framework"
+
+            // 其他第三方库
+            return "vendor"
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // 提高警告阈值到 1000kB
+  },
   plugins: [
     reactRouter(),
     tailwindcss(),
     wasm(),
-    topLevelAwait(),
     // 仅在客户端构建时注入 Polyfills，避免干扰 SSR/SSG 预渲染环境
     !isSsrBuild &&
       nodePolyfills({
@@ -58,41 +95,5 @@ export default defineConfig(({ isSsrBuild }) => ({
   },
   optimizeDeps: {
     include: ["@metamask/sdk", "@rainbow-me/rainbowkit", "wagmi", "viem"],
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        // 核心拆包策略
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            // 将大型 Web3 SDK 分离
-            if (id.includes("@solana")) return "vendor-solana"
-            if (id.includes("@mysten") || id.includes("sui"))
-              return "vendor-sui"
-            if (id.includes("@irys") || id.includes("arweave"))
-              return "vendor-arweave"
-            if (id.includes("bitcoinjs-lib") || id.includes("tiny-secp256k1"))
-              return "vendor-bitcoin"
-            if (
-              id.includes("ethers") ||
-              id.includes("viem") ||
-              id.includes("wagmi")
-            )
-              return "vendor-evm"
-            if (id.includes("@metamask")) return "vendor-metamask"
-            if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("react-router")
-            )
-              return "vendor-framework"
-
-            // 其他第三方库
-            return "vendor"
-          }
-        },
-      },
-    },
-    chunkSizeWarningLimit: 1000, // 提高警告阈值到 1000kB
   },
 }))
