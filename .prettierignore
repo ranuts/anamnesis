@@ -1,6 +1,6 @@
 node_modules
 dist
 pnpm-lock.yaml
-.next
-public
-
+.vscode
+.pnpm-store
+.DS_Store

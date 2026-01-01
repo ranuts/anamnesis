@@ -332,6 +332,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           t("identities.successActive", { alias: walletRecord.alias }),
         )
       } catch (e) {
+        console.error("Failed to activate wallet:", e)
         toast.error("Failed to activate wallet")
       }
     },

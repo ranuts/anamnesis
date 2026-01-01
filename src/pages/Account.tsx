@@ -1,7 +1,17 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "@/i18n/config"
 import { useWalletManager } from "@/hooks/use-wallet-manager"
 import { toast } from "sonner"
+import { useAccount, useDisconnect } from "wagmi"
+import { ConnectButton } from "@rainbow-me/rainbowkit"
+import {
+  ArweaveIcon,
+  EthereumIcon,
+  SolanaIcon,
+  BitcoinIcon,
+  SuiIcon,
+  IrysIcon,
+} from "@/components/icons"
 import {
   Card,
   CardContent,
@@ -24,6 +34,10 @@ import {
   EyeOff,
   LogOut,
   ChevronRight,
+  Settings2,
+  ExternalLink,
+  Unlink,
+  UserCheck,
 } from "lucide-react"
 import {
   Dialog,
@@ -37,6 +51,61 @@ import { Trans } from "react-i18next"
 export default function AccountPage() {
   const { t } = useTranslation()
   const walletManager = useWalletManager()
+  const { address: paymentAddress, isConnected: isPaymentConnected } =
+    useAccount()
+  const { disconnect: disconnectEVM } = useDisconnect()
+
+  // Arweave 外部钱包状态
+  const [arAddress, setArAddress] = useState<string | null>(null)
+  const [isArConnected, setIsArConnected] = useState(false)
+
+  const checkArConnect = async () => {
+    if (window.arweaveWallet) {
+      try {
+        const addr = await window.arweaveWallet.getActiveAddress()
+        setArAddress(addr)
+        setIsArConnected(true)
+      } catch (e) {
+        setIsArConnected(false)
+        setArAddress(null)
+      }
+    }
+  }
+
+  useEffect(() => {
+    checkArConnect()
+    // 监听 ArConnect 切换账号
+    window.addEventListener("walletSwitch", checkArConnect)
+    return () => window.removeEventListener("walletSwitch", checkArConnect)
+  }, [])
+
+  const connectArweave = async () => {
+    if (!window.arweaveWallet) {
+      window.open("https://www.arconnect.io/", "_blank")
+      return
+    }
+    try {
+      await window.arweaveWallet.connect([
+        "ACCESS_ADDRESS",
+        "ACCESS_ALL_ADDRESSES",
+        "SIGN_TRANSACTION",
+      ])
+      await checkArConnect()
+      toast.success(t("identities.paymentConnected"))
+    } catch (e) {
+      toast.error("ArConnect connection failed")
+    }
+  }
+
+  const disconnectArweave = async () => {
+    if (window.arweaveWallet) {
+      await window.arweaveWallet.disconnect()
+      setIsArConnected(false)
+      setArAddress(null)
+      toast.success(t("identities.disconnectProvider"))
+    }
+  }
+
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [newWalletInput, setNewWalletInput] = useState("")
@@ -119,63 +188,120 @@ export default function AccountPage() {
       )
     }
     return (
-      <div className="space-y-3">
-        {filtered.map((w) => (
-          <div
-            key={w.id}
-            className="flex items-center justify-between rounded-xl border border-slate-100 bg-white p-4 transition-shadow hover:shadow-sm"
-          >
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-indigo-600">
-                <Wallet className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate font-bold text-slate-900">
-                  {w.alias}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            {t("identities.title")}
+          </h4>
+          <span className="text-[10px] font-medium text-slate-400">
+            {filtered.length} {t("common.account")}
+          </span>
+        </div>
+        <div className="space-y-3">
+          {filtered.map((w) => (
+            <div
+              key={w.id}
+              className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
+                walletManager.activeAddress === w.address
+                  ? "border-indigo-200 bg-indigo-50/30 shadow-sm"
+                  : "border-slate-100 bg-white hover:shadow-sm"
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-4">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    walletManager.activeAddress === w.address
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-50 text-slate-400"
+                  }`}
+                >
+                  <Wallet className="h-5 w-5" />
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 font-mono text-xs text-slate-500">
-                  <span className="max-w-[150px] truncate sm:max-w-none">
-                    {w.address}
-                  </span>
-                  <button
-                    onClick={() => copyAddress(w.address)}
-                    className="p-1 hover:text-indigo-600"
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="truncate font-bold text-slate-900">
+                      {w.alias}
+                    </div>
+                    {walletManager.activeAddress === w.address && (
+                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600 uppercase">
+                        {t("common.activeIdentityLabel")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 font-mono text-xs text-slate-500">
+                    <span className="max-w-[150px] truncate sm:max-w-none">
+                      {w.address}
+                    </span>
+                    <button
+                      onClick={() => copyAddress(w.address)}
+                      className="p-1 hover:text-indigo-600"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {walletManager.activeAddress !== w.address && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => walletManager.selectWallet(w.address)}
+                    className="h-8 px-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
                   >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleShowSensitive(w, "key")}
-                className="text-slate-400 hover:text-indigo-600"
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                {t("identities.viewSensitive")}
-              </Button>
-              {w.chain !== "arweave" && (
+                    <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+                    {t("identities.activate")}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleShowSensitive(w, "mnemonic")}
+                  onClick={() => handleShowSensitive(w, "key")}
                   className="text-slate-400 hover:text-indigo-600"
                 >
-                  <Lock className="mr-2 h-4 w-4" />
-                  {t("identities.mnemonic")}
+                  <Eye className="h-4 w-4" />
                 </Button>
-              )}
+                {w.chain !== "arweave" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleShowSensitive(w, "mnemonic")}
+                    className="text-slate-400 hover:text-indigo-600"
+                  >
+                    <Lock className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     )
   }
 
+  const activeAccount = walletManager.wallets.find(
+    (w) => w.address === walletManager.activeAddress,
+  )
+
+  const getChainIcon = (chain?: string) => {
+    switch (chain?.toLowerCase()) {
+      case "ethereum":
+        return <EthereumIcon className="h-6 w-6" />
+      case "solana":
+        return <SolanaIcon className="h-6 w-6" />
+      case "bitcoin":
+        return <BitcoinIcon className="h-6 w-6" />
+      case "sui":
+        return <SuiIcon className="h-6 w-6" />
+      case "arweave":
+        return <ArweaveIcon className="h-6 w-6" />
+      default:
+        return <UserCheck className="h-6 w-6" />
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-4xl space-y-8 py-8">
+    <div className="mx-auto max-w-4xl space-y-8 py-8 px-4 sm:px-6">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-bold tracking-tight">
@@ -246,6 +372,45 @@ export default function AccountPage() {
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-8 lg:col-span-2">
+            {/* Current Account Summary Card */}
+            <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/30 p-6 shadow-xs">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200">
+                  {getChainIcon(activeAccount?.chain)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">
+                    {t("identities.currentPersona")}
+                  </div>
+                  {activeAccount ? (
+                    <div className="mt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-xl font-bold text-slate-900">
+                          {activeAccount.alias}
+                        </span>
+                        <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-[10px] font-bold text-indigo-600 uppercase">
+                          {activeAccount.chain}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 font-mono text-sm text-slate-500">
+                        <span className="truncate">{activeAccount.address}</span>
+                        <button
+                          onClick={() => copyAddress(activeAccount.address)}
+                          className="hover:text-indigo-600"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-lg font-medium text-slate-400 italic">
+                      {t("identities.noActivePersona")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <Tabs defaultValue="ethereum" className="w-full">
               <TabsList className="mb-6 h-auto w-full flex-wrap justify-start rounded-xl bg-slate-100 p-1">
                 {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
@@ -391,6 +556,159 @@ export default function AccountPage() {
           </div>
 
           <div className="space-y-6">
+            {/* Payment Wallets (External) */}
+            <div className="space-y-4">
+              <h4 className="flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <Settings2 className="h-3 w-3" />
+                {t("identities.paymentMethod")}
+              </h4>
+
+              {/* EVM Provider (Irys) */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
+                <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <IrysIcon className="h-3.5 w-3.5" />
+                    <span className="text-[11px] font-bold text-slate-600">
+                      {t("identities.paymentProviderEVM")}
+                    </span>
+                  </div>
+                  {isPaymentConnected && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase">
+                      <span className="h-1 w-1 rounded-full bg-green-500 animate-pulse" />
+                      Live
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  {!isPaymentConnected ? (
+                    <ConnectButton.Custom>
+                      {({ openConnectModal }) => (
+                        <Button
+                          onClick={openConnectModal}
+                          variant="outline"
+                          className="h-9 w-full rounded-xl border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          <Plus className="mr-2 h-3.5 w-3.5" />
+                          {t("identities.connectProvider", { name: "EVM" })}
+                        </Button>
+                      )}
+                    </ConnectButton.Custom>
+                  ) : (
+                    <ConnectButton.Custom>
+                      {({ account, chain, openAccountModal }) => (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {chain?.iconUrl && (
+                                <img
+                                  src={chain.iconUrl}
+                                  alt=""
+                                  className="h-5 w-5 rounded-full"
+                                />
+                              )}
+                              <span className="text-xs font-bold text-slate-700">
+                                {account.displayName}
+                              </span>
+                            </div>
+                            <span className="text-xs font-bold text-indigo-600">
+                              {account.displayBalance}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={openAccountModal}
+                              className="h-7 flex-1 rounded-lg bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-slate-100"
+                            >
+                              <ExternalLink className="mr-1.5 h-3 w-3" />
+                              {t("identities.managePayment")}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => disconnectEVM()}
+                              className="h-7 w-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50"
+                            >
+                              <Unlink className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </ConnectButton.Custom>
+                  )}
+                </div>
+              </div>
+
+              {/* Arweave Provider (Native) */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
+                <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <ArweaveIcon className="h-3.5 w-3.5" />
+                    <span className="text-[11px] font-bold text-slate-600">
+                      {t("identities.paymentProviderArweave")}
+                    </span>
+                  </div>
+                  {isArConnected && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase">
+                      <span className="h-1 w-1 rounded-full bg-green-500 animate-pulse" />
+                      Live
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  {!isArConnected ? (
+                    <Button
+                      onClick={connectArweave}
+                      variant="outline"
+                      className="h-9 w-full rounded-xl border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
+                    >
+                      <Plus className="mr-2 h-3.5 w-3.5" />
+                      {t("identities.connectProvider", { name: "ArConnect" })}
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-5 rounded-full bg-indigo-50 flex items-center justify-center">
+                            <ArweaveIcon className="h-3 w-3" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-700">
+                            {arAddress?.slice(0, 6)}...{arAddress?.slice(-4)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyAddress(arAddress || "")}
+                          className="h-7 flex-1 rounded-lg bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-slate-100"
+                        >
+                          <Copy className="mr-1.5 h-3 w-3" />
+                          {t("common.copy")}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={disconnectArweave}
+                          className="h-7 w-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50"
+                        >
+                          <Unlink className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="px-4 text-[10px] leading-relaxed text-slate-400 italic text-center">
+                {t("identities.paymentDesc")}
+              </p>
+            </div>
+
             <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
               <div className="mb-4 flex items-center gap-3">
                 <div className="rounded-lg bg-green-100 p-2 text-green-600">
