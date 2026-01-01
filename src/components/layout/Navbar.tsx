@@ -109,19 +109,18 @@ export function Navbar() {
           {/* 统一账户状态展示 - 只显示当前激活的账户（本地或外部，互斥） */}
           <div className="flex items-center gap-2">
             <ConnectButton.Custom>
-              {({
-                account,
-                chain,
-                openConnectModal,
-                mounted,
-              }) => {
+              {({ account, chain, openConnectModal, mounted }) => {
                 const ready = mounted
                 const connected = ready && !!account && !!chain
                 const hasLocalAccount =
                   walletManager.isUnlocked && !!walletManager.activeAddress
 
                 // 如果有本地账户激活，显示本地账户
-                if (hasLocalAccount && activeAccount && walletManager.activeAddress) {
+                if (
+                  hasLocalAccount &&
+                  activeAccount &&
+                  walletManager.activeAddress
+                ) {
                   return (
                     <Link
                       to="/account"
