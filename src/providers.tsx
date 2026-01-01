@@ -1,10 +1,14 @@
-import "@rainbow-me/rainbowkit/styles.css";
-import { getDefaultConfig, RainbowKitProvider, type Locale } from "@rainbow-me/rainbowkit";
-import { WagmiProvider, http } from "wagmi";
-import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { ReactNode, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import "@rainbow-me/rainbowkit/styles.css"
+import {
+  getDefaultConfig,
+  RainbowKitProvider,
+  type Locale,
+} from "@rainbow-me/rainbowkit"
+import { WagmiProvider, http } from "wagmi"
+import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains"
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query"
+import { ReactNode, useEffect, useState } from "react"
+import { useTranslation } from "@/i18n/config"
 
 const config = getDefaultConfig({
   appName: "Anamnesis",
@@ -18,7 +22,7 @@ const config = getDefaultConfig({
     [base.id]: http(),
   },
   ssr: false,
-});
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,25 +31,23 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
-});
+})
 
 export function Providers({ children }: { children: ReactNode }) {
-  const { i18n } = useTranslation();
-  const [locale, setLocale] = useState<Locale>("en-US");
+  const { i18n } = useTranslation()
+  const [locale, setLocale] = useState<Locale>("en-US")
 
   useEffect(() => {
     // Map i18next language to RainbowKit Locale
-    const currentLang = i18n.language.startsWith("zh") ? "zh-CN" : "en-US";
-    setLocale(currentLang as Locale);
-  }, [i18n.language]);
+    const currentLang = i18n.language.startsWith("zh") ? "zh-CN" : "en-US"
+    setLocale(currentLang as Locale)
+  }, [i18n.language])
 
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider locale={locale}>
-          {children}
-        </RainbowKitProvider>
+        <RainbowKitProvider locale={locale}>{children}</RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
-  );
+  )
 }
