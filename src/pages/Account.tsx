@@ -392,6 +392,8 @@ export default function AccountPage() {
   const [loadingBalances, setLoadingBalances] = useState<
     Record<string, boolean>
   >({})
+  // 余额显示状态（默认隐藏）
+  const [showBalances, setShowBalances] = useState<Record<string, boolean>>({})
 
   // 获取所有账户的余额
   useEffect(() => {
@@ -752,7 +754,7 @@ export default function AccountPage() {
                             外部连接
                           </span>
                         )}
-                      </div>
+                    </div>
                       <div className="flex items-center gap-2 font-mono text-xs text-slate-500">
                         <span className="truncate">{account.address}</span>
                     <button
@@ -767,22 +769,77 @@ export default function AccountPage() {
                     </button>
                   </div>
                       <div className="flex items-center gap-2">
+                    <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            const isShowing = showBalances[key]
+                            if (!isShowing) {
+                              // 如果当前隐藏，显示并刷新余额
+                              setShowBalances((prev) => ({ ...prev, [key]: true }))
+                              // 刷新余额
+                              setLoadingBalances((prev) => ({ ...prev, [key]: true }))
+                              try {
+                                const freshBalance = await getBalance(
+                                  account.chain,
+                                  account.address,
+                                )
+                                setBalances((prev) => ({ ...prev, [key]: freshBalance }))
+                              } catch (error) {
+                                console.error(
+                                  `Failed to fetch balance for ${account.address}:`,
+                                  error,
+                                )
+                                setBalances((prev) => ({
+                                  ...prev,
+                                  [key]: {
+                                    balance: "0",
+                                    formatted: "0",
+                                    symbol: account.chain.toUpperCase(),
+                                    error: "Failed to fetch",
+                                  },
+                                }))
+                              } finally {
+                                setLoadingBalances((prev) => ({
+                                  ...prev,
+                                  [key]: false,
+                                }))
+                              }
+                            } else {
+                              // 如果当前显示，隐藏余额
+                              setShowBalances((prev) => ({ ...prev, [key]: false }))
+                            }
+                          }}
+                          className="shrink-0 p-1 text-slate-400 transition-colors hover:text-indigo-600"
+                          title={
+                            showBalances[key]
+                              ? "隐藏余额"
+                              : "显示余额"
+                          }
+                        >
+                          {showBalances[key] ? (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5" />
+                          )}
+                    </button>
                         {loading ? (
                           <span className="text-xs text-slate-400 italic">
                             {t("common.loading")}
                           </span>
-                        ) : balance ? (
+                        ) : (
                           <div className="flex items-baseline gap-1.5">
                             <span className="text-sm font-bold text-indigo-600">
-                              {balance.formatted}
+                              {showBalances[key] && balance
+                                ? balance.formatted
+                                : "****"}
                             </span>
                             <span className="text-xs font-medium text-slate-500 uppercase">
-                              {balance.symbol}
+                              {balance?.symbol || account.chain.toUpperCase()}
                             </span>
+                          </div>
+                        )}
                 </div>
-                        ) : null}
               </div>
-                    </div>
                   </div>
                   <div
                     className="flex shrink-0 items-center gap-1"
@@ -1420,7 +1477,7 @@ export default function AccountPage() {
                               }`}
                             >
                               <SuiIcon className="h-5 w-5" />
-                            </div>
+                          </div>
                             <div className="flex flex-1 flex-col items-start">
                               <span
                                 className={`text-sm font-semibold ${
@@ -1432,7 +1489,7 @@ export default function AccountPage() {
                                 {isSuiConnected
                                   ? "Sui Wallet (已连接)"
                                   : "Sui Wallet"}
-                              </span>
+                          </span>
                               <span
                                 className={`text-xs ${
                                   isSuiConnected
@@ -1452,15 +1509,15 @@ export default function AccountPage() {
                                   : "text-slate-400"
                               }`}
                             />
-                          </Button>
-                        </div>
-                </div>
+                        </Button>
+                      </div>
+                    </div>
                     </TabsContent>
-              </div>
+                </div>
                 </Tabs>
               </CardContent>
             </Card>
-            </div>
+              </div>
 
           <div className="space-y-6">
             <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
