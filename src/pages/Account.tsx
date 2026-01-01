@@ -4,13 +4,13 @@ import { useWalletManager } from "@/hooks/use-wallet-manager"
 import { toast } from "sonner"
 import { useAccount, useDisconnect } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { getBalance, type BalanceResult } from "@/lib/balance"
 import {
   ArweaveIcon,
   EthereumIcon,
   SolanaIcon,
   BitcoinIcon,
   SuiIcon,
-  IrysIcon,
 } from "@/components/icons"
 import {
   Card,
@@ -34,7 +34,6 @@ import {
   EyeOff,
   LogOut,
   ChevronRight,
-  Settings2,
   ExternalLink,
   Unlink,
   UserCheck,
@@ -123,6 +122,56 @@ export default function AccountPage() {
   } | null>(null)
   const [viewType, setViewType] = useState<"key" | "mnemonic">("key")
 
+  // 余额状态
+  const [balances, setBalances] = useState<
+    Record<string, BalanceResult | null>
+  >({})
+  const [loadingBalances, setLoadingBalances] = useState<
+    Record<string, boolean>
+  >({})
+
+  // 获取所有账户的余额
+  useEffect(() => {
+    if (!walletManager.isUnlocked || walletManager.wallets.length === 0) {
+      return
+    }
+
+    const fetchBalances = async () => {
+      const promises = walletManager.wallets.map(async (wallet) => {
+        const key = `${wallet.chain}-${wallet.address}`
+        
+        // 如果已经有余额数据，跳过
+        if (balances[key] !== undefined) {
+          return
+        }
+
+        setLoadingBalances((prev) => ({ ...prev, [key]: true }))
+        try {
+          const balance = await getBalance(wallet.chain, wallet.address)
+          setBalances((prev) => ({ ...prev, [key]: balance }))
+        } catch (error) {
+          console.error(`Failed to fetch balance for ${wallet.address}:`, error)
+          setBalances((prev) => ({
+            ...prev,
+            [key]: {
+              balance: "0",
+              formatted: "0",
+              symbol: wallet.chain.toUpperCase(),
+              error: "Failed to fetch",
+            },
+          }))
+        } finally {
+          setLoadingBalances((prev) => ({ ...prev, [key]: false }))
+        }
+      })
+
+      await Promise.all(promises)
+    }
+
+    fetchBalances()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletManager.isUnlocked, walletManager.wallets])
+
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault()
     const success = await walletManager.unlock(password)
@@ -178,105 +227,347 @@ export default function AccountPage() {
     }
   }
 
+  // 获取外部连接的账户信息
+  const getExternalAccounts = () => {
+    const externalAccounts: Array<{
+      id: string
+      chain: string
+      address: string
+      alias: string
+      isExternal: true
+      provider?: string
+    }> = []
+
+    // EVM 账户
+    if (isPaymentConnected && paymentAddress) {
+      externalAccounts.push({
+        id: `external-evm-${paymentAddress}`,
+        chain: "ethereum",
+        address: paymentAddress,
+        alias: "外部连接账户",
+        isExternal: true,
+        provider: "EVM",
+      })
+    }
+
+    // Arweave 账户
+    if (isArConnected && arAddress) {
+      externalAccounts.push({
+        id: `external-arweave-${arAddress}`,
+        chain: "arweave",
+        address: arAddress,
+        alias: "外部连接账户",
+        isExternal: true,
+        provider: "ArConnect",
+      })
+    }
+
+    return externalAccounts
+  }
+
+  // 获取外部账户余额
+  useEffect(() => {
+    const externalAccounts = getExternalAccounts()
+    if (externalAccounts.length === 0) return
+
+    const fetchExternalBalances = async () => {
+      for (const account of externalAccounts) {
+        const key = `external-${account.chain}-${account.address}`
+        if (loadingBalances[key] || balances[key] !== undefined) {
+          continue
+        }
+
+        setLoadingBalances((prev) => ({ ...prev, [key]: true }))
+        try {
+          const balance = await getBalance(account.chain, account.address)
+          setBalances((prev) => ({ ...prev, [key]: balance }))
+        } catch (error) {
+          console.error(`Failed to fetch balance for external ${account.address}:`, error)
+          setBalances((prev) => ({
+            ...prev,
+            [key]: {
+              balance: "0",
+              formatted: "0",
+              symbol: account.chain.toUpperCase(),
+              error: "Failed to fetch",
+            },
+          }))
+        } finally {
+          setLoadingBalances((prev) => ({ ...prev, [key]: false }))
+        }
+      }
+    }
+
+    fetchExternalBalances()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaymentConnected, paymentAddress, isArConnected, arAddress])
+
   const renderAccountList = (chain: string) => {
-    const filtered = walletManager.wallets.filter((w) => w.chain === chain)
-    if (filtered.length === 0) {
+    // 本地账户
+    const localAccounts = walletManager.wallets.filter((w) => w.chain === chain)
+    
+    // 外部连接账户
+    const externalAccounts = getExternalAccounts().filter(
+      (acc) => acc.chain === chain,
+    )
+
+    const allAccounts = [
+      ...localAccounts.map((w) => ({ ...w, isExternal: false })),
+      ...externalAccounts.map((acc) => ({
+        ...acc,
+        // 为外部账户生成更好的显示名称
+        alias:
+          acc.chain === "ethereum"
+            ? "EVM 钱包"
+            : acc.chain === "arweave"
+              ? "ArConnect 钱包"
+              : "外部连接账户",
+      })),
+    ]
+
+    // 渲染连接外部账户按钮
+    const renderConnectButton = () => {
+      if (chain === "ethereum" && !isPaymentConnected) {
+        return (
+          <ConnectButton.Custom>
+            {({ openConnectModal }) => (
+              <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-indigo-300 hover:bg-indigo-50/30">
+                <Button
+                  onClick={openConnectModal}
+                  variant="ghost"
+                  className="h-auto w-full flex-col gap-2 p-0 text-slate-600 hover:text-indigo-600"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span className="text-xs font-semibold">连接 EVM 钱包</span>
+                </Button>
+              </div>
+            )}
+          </ConnectButton.Custom>
+        )
+      }
+      if (chain === "arweave" && !isArConnected) {
+        return (
+          <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-indigo-300 hover:bg-indigo-50/30">
+            <Button
+              onClick={connectArweave}
+              variant="ghost"
+              className="h-auto w-full flex-col gap-2 p-0 text-slate-600 hover:text-indigo-600"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-xs font-semibold">连接 ArConnect</span>
+            </Button>
+          </div>
+        )
+      }
+      return null
+    }
+
+    if (allAccounts.length === 0) {
+      const connectBtn = renderConnectButton()
       return (
-        <div className="rounded-xl border-2 border-dashed py-8 text-center text-slate-400 italic">
-          {t("identities.emptyState", { chain })}
+        <div className="space-y-3">
+          <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-12 text-center">
+            <Wallet className="mx-auto h-8 w-8 text-slate-300 mb-3" />
+            <p className="text-sm text-slate-400 italic">
+              {t("identities.emptyState", { chain })}
+            </p>
+          </div>
+          {connectBtn}
         </div>
       )
     }
+
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            {t("identities.title")}
-          </h4>
-          <span className="text-[10px] font-medium text-slate-400">
-            {filtered.length} {t("identities.accountLabel")}
-          </span>
-        </div>
-        <div className="space-y-3">
-          {filtered.map((w) => (
+      <div className="space-y-3">
+        {allAccounts.map((account) => {
+          const key = account.isExternal
+            ? `external-${account.chain}-${account.address}`
+            : `${account.chain}-${account.address}`
+          const balance = balances[key]
+          const loading = loadingBalances[key]
+          // 判断是否激活：本地账户检查 activeAddress，外部账户检查是否有本地账户激活（如果没有本地账户激活，外部账户就是激活的）
+          const isActive = account.isExternal
+            ? !walletManager.activeAddress // 外部账户激活：没有本地账户激活
+            : walletManager.activeAddress === account.address // 本地账户激活：地址匹配
+
+          return (
             <div
-              key={w.id}
-              className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
-                walletManager.activeAddress === w.address
-                  ? "border-indigo-200 bg-indigo-50/30 shadow-sm"
-                  : "border-slate-100 bg-white hover:shadow-sm"
+              key={account.id || (account as any).id}
+              className={`group relative overflow-hidden rounded-xl border transition-all ${
+                isActive
+                  ? "border-indigo-300 bg-gradient-to-br from-indigo-50 to-indigo-50/50 shadow-md"
+                  : account.isExternal
+                    ? "border-blue-200 bg-blue-50/30 hover:border-blue-300 hover:shadow-sm"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
               }`}
             >
-              <div className="flex min-w-0 items-center gap-4">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    walletManager.activeAddress === w.address
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-50 text-slate-400"
-                  }`}
-                >
-                  <Wallet className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="truncate font-bold text-slate-900">
-                      {w.alias}
+              {isActive && (
+                <div className="absolute left-0 top-0 h-full w-1 bg-indigo-600" />
+              )}
+              {account.isExternal && (
+                <div className="absolute left-0 top-0 h-full w-1 bg-blue-500" />
+              )}
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <div
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all ${
+                        isActive
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                          : account.isExternal
+                            ? "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
+                            : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                      }`}
+                    >
+                      {getChainIcon(account.chain)}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="truncate font-bold text-slate-900">
+                          {account.isExternal
+                            ? account.alias
+                            : (account as any).alias}
+                        </h3>
+                        {isActive && (
+                          <span className="shrink-0 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                            {t("identities.currentAccount")}
+                          </span>
+                        )}
+                        {account.isExternal && (
+                          <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+                            外部连接
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-xs text-slate-500">
+                        <span className="truncate">{account.address}</span>
+                        <button
+                          onClick={() => copyAddress(account.address)}
+                          className="shrink-0 p-1 text-slate-400 transition-colors hover:text-indigo-600"
+                          title={t("common.copy")}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {loading ? (
+                          <span className="text-xs text-slate-400 italic">
+                            {t("common.loading")}
+                          </span>
+                        ) : balance ? (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-bold text-indigo-600">
+                              {balance.formatted}
+                            </span>
+                            <span className="text-xs font-medium text-slate-500 uppercase">
+                              {balance.symbol}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 font-mono text-xs text-slate-500">
-                    <span className="max-w-[150px] truncate sm:max-w-none">
-                      {w.address}
-                    </span>
-                    <button
-                      onClick={() => copyAddress(w.address)}
-                      className="p-1 hover:text-indigo-600"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                        {account.isExternal ? (
+                      // 外部账户操作按钮
+                      <>
+                        {!isActive && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // 清除本地账户激活状态，使外部账户成为激活账户
+                              walletManager.clearActiveWallet()
+                              toast.success("已切换到外部账户")
+                            }}
+                            className="h-8 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+                            {t("identities.activate")}
+                          </Button>
+                        )}
+                        {account.chain === "ethereum" && isPaymentConnected ? (
+                          <ConnectButton.Custom>
+                            {({ openAccountModal }) => (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={openAccountModal}
+                                className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                                title="管理账户"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </ConnectButton.Custom>
+                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (account.chain === "ethereum") {
+                              disconnectEVM()
+                            } else if (account.chain === "arweave") {
+                              disconnectArweave()
+                            }
+                          }}
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          title="断开连接"
+                        >
+                          <Unlink className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      // 本地账户操作按钮
+                      <>
+                        {!isActive && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              walletManager.selectWallet(account.address)
+                            }
+                            className="h-8 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+                            {t("identities.activate")}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleShowSensitive(account, "key")}
+                          className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                          title={t("identities.viewSensitive")}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {account.chain !== "arweave" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleShowSensitive(account, "mnemonic")
+                            }
+                            className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                            title={t("identities.mnemonic")}
+                          >
+                            <Lock className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {walletManager.activeAddress !== w.address && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => walletManager.selectWallet(w.address)}
-                    className="h-8 px-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
-                  >
-                    <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                    {t("identities.activate")}
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleShowSensitive(w, "key")}
-                  className="text-slate-400 hover:text-indigo-600"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                {w.chain !== "arweave" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleShowSensitive(w, "mnemonic")}
-                    className="text-slate-400 hover:text-indigo-600"
-                  >
-                    <Lock className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
             </div>
-          ))}
-        </div>
+          )
+        })}
+        {/* 连接外部账户按钮 */}
+        {renderConnectButton()}
       </div>
     )
   }
-
-  const activeAccount = walletManager.wallets.find(
-    (w) => w.address === walletManager.activeAddress,
-  )
 
   const getChainIcon = (chain?: string) => {
     switch (chain?.toLowerCase()) {
@@ -367,343 +658,175 @@ export default function AccountPage() {
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-8 lg:col-span-2">
-            {/* Current Account Summary Card */}
-            <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/30 p-6 shadow-xs">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200">
-                  {getChainIcon(activeAccount?.chain)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">
-                    {t("identities.currentAccount")}
-                  </div>
-                  {activeAccount ? (
-                    <div className="mt-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-xl font-bold text-slate-900">
-                          {activeAccount.alias}
-                        </span>
-                        <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-[10px] font-bold text-indigo-600 uppercase">
-                          {activeAccount.chain}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2 font-mono text-sm text-slate-500">
-                        <span className="truncate">{activeAccount.address}</span>
-                        <button
-                          onClick={() => copyAddress(activeAccount.address)}
-                          className="hover:text-indigo-600"
+            <Card className="overflow-hidden border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-3">
+                <CardTitle className="text-base text-slate-700">
+                  {t("identities.title")}
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  {t("identities.desc")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Tabs defaultValue="ethereum" className="w-full">
+                  <TabsList className="mx-4 mt-4 mb-0 h-auto w-auto flex-wrap justify-start rounded-lg bg-slate-100 p-1">
+                    {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
+                      (chain) => (
+                        <TabsTrigger
+                          key={chain}
+                          value={chain}
+                          className="rounded-md px-4 py-2 text-xs font-semibold capitalize data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
                         >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-lg font-medium text-slate-400 italic">
-                      {t("identities.noActiveAccount")}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <Tabs defaultValue="ethereum" className="w-full">
-              <TabsList className="mb-6 h-auto w-full flex-wrap justify-start rounded-xl bg-slate-100 p-1">
-                {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
-                  (chain) => (
-                    <TabsTrigger
-                      key={chain}
-                      value={chain}
-                      className="rounded-lg px-6 py-2.5 capitalize data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                    >
-                      {chain}
-                    </TabsTrigger>
-                  ),
-                )}
-              </TabsList>
-              <TabsContent value="ethereum">
+                          {chain}
+                        </TabsTrigger>
+                      ),
+                    )}
+                  </TabsList>
+              <TabsContent value="ethereum" className="px-4 pb-4 pt-4">
                 {renderAccountList("ethereum")}
               </TabsContent>
-              <TabsContent value="bitcoin">
+              <TabsContent value="bitcoin" className="px-4 pb-4 pt-4">
                 {renderAccountList("bitcoin")}
               </TabsContent>
-              <TabsContent value="solana">
+              <TabsContent value="solana" className="px-4 pb-4 pt-4">
                 {renderAccountList("solana")}
               </TabsContent>
-              <TabsContent value="sui">{renderAccountList("sui")}</TabsContent>
-              <TabsContent value="arweave">
+              <TabsContent value="sui" className="px-4 pb-4 pt-4">
+                {renderAccountList("sui")}
+              </TabsContent>
+              <TabsContent value="arweave" className="px-4 pb-4 pt-4">
                 {renderAccountList("arweave")}
               </TabsContent>
-            </Tabs>
+                </Tabs>
+              </CardContent>
+            </Card>
 
-            <Card className="overflow-hidden border-slate-200/60 shadow-sm">
-              <Tabs defaultValue="import">
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-2">
-                  <CardTitle className="flex items-center gap-2 text-lg text-slate-700">
-                    <Plus className="h-5 w-5" /> {t("identities.addNew")}
-                  </CardTitle>
-                  <TabsList className="h-9 bg-slate-200/50 p-1">
-                    <TabsTrigger value="import" className="px-3 py-1.5 text-xs">
+            <Card className="overflow-hidden border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base text-slate-700">
+                  <Plus className="h-4 w-4 text-indigo-600" />
+                  {t("identities.addNew")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Tabs defaultValue="import" className="w-full">
+                  <TabsList className="mx-4 mt-4 mb-0 h-auto w-auto rounded-lg bg-slate-100 p-1">
+                    <TabsTrigger
+                      value="import"
+                      className="rounded-md px-4 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                    >
                       {t("identities.import")}
                     </TabsTrigger>
-                    <TabsTrigger value="create" className="px-3 py-1.5 text-xs">
+                    <TabsTrigger
+                      value="create"
+                      className="rounded-md px-4 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                    >
                       {t("identities.new")}
                     </TabsTrigger>
                   </TabsList>
-                </div>
 
-                <CardContent className="p-6">
-                  <TabsContent value="import" className="mt-0">
-                    <form onSubmit={handleAddAccount} className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-slate-700">
-                            {t("identities.aliasLabel")}
-                          </label>
-                          <Input
-                            placeholder={t("identities.aliasPlaceholder")}
-                            value={newAccountAlias}
-                            onChange={(e) => setNewAccountAlias(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-slate-700">
-                            {t("identities.keyLabel")}
-                          </label>
-                          <div className="relative">
+                  <div className="p-6 pt-4">
+                    <TabsContent value="import" className="mt-0">
+                      <form onSubmit={handleAddAccount} className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-700">
+                              {t("identities.aliasLabel")}
+                            </label>
                             <Input
-                              type={showImportKey ? "text" : "password"}
-                              placeholder={t("identities.keyPlaceholder")}
-                              value={newAccountInput}
-                              onChange={(e) => setNewAccountInput(e.target.value)}
-                              className="pr-10"
+                              placeholder={t("identities.aliasPlaceholder")}
+                              value={newAccountAlias}
+                              onChange={(e) => setNewAccountAlias(e.target.value)}
+                              className="rounded-lg"
                             />
-                            <button
-                              type="button"
-                              onClick={() => setShowImportKey(!showImportKey)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
-                            >
-                              {showImportKey ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-700">
+                              {t("identities.keyLabel")}
+                            </label>
+                            <div className="relative">
+                              <Input
+                                type={showImportKey ? "text" : "password"}
+                                placeholder={t("identities.keyPlaceholder")}
+                                value={newAccountInput}
+                                onChange={(e) => setNewAccountInput(e.target.value)}
+                                className="pr-10 rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowImportKey(!showImportKey)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                              >
+                                {showImportKey ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <Button
-                        type="submit"
-                        className="h-11 w-full rounded-xl bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        {t("identities.addSubmit")}
-                      </Button>
-                    </form>
-                  </TabsContent>
-
-                  <TabsContent value="create" className="mt-0">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {[
-                        {
-                          id: "ethereum",
-                          name: "Ethereum / Base / Hyper",
-                          icon: <Wallet className="h-4 w-4" />,
-                        },
-                        {
-                          id: "bitcoin",
-                          name: "Bitcoin",
-                          icon: <Wallet className="h-4 w-4" />,
-                        },
-                        {
-                          id: "solana",
-                          name: "Solana",
-                          icon: <Wallet className="h-4 w-4" />,
-                        },
-                        {
-                          id: "sui",
-                          name: "Sui",
-                          icon: <Wallet className="h-4 w-4" />,
-                        },
-                        {
-                          id: "arweave",
-                          name: "Arweave",
-                          icon: <Wallet className="h-4 w-4" />,
-                        },
-                      ].map((chain) => (
                         <Button
-                          key={chain.id}
-                          variant="outline"
-                          onClick={() => handleCreateAccount(chain.id)}
-                          className="flex h-20 flex-col gap-2 rounded-xl border-slate-100 hover:border-indigo-600 hover:bg-indigo-50/30"
+                          type="submit"
+                          className="h-10 w-full rounded-lg bg-indigo-600 font-semibold hover:bg-indigo-700"
                         >
-                          <div className="rounded-lg bg-slate-50 p-2 text-slate-600 group-hover:text-indigo-600">
-                            {chain.icon}
-                          </div>
-                          <span className="text-xs font-bold text-slate-700">
-                            {chain.name}
-                          </span>
+                          {t("identities.addSubmit")}
                         </Button>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </CardContent>
-              </Tabs>
+                      </form>
+                    </TabsContent>
+
+                    <TabsContent value="create" className="mt-0">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {[
+                          {
+                            id: "ethereum",
+                            name: "Ethereum",
+                            icon: <EthereumIcon className="h-5 w-5" />,
+                          },
+                          {
+                            id: "bitcoin",
+                            name: "Bitcoin",
+                            icon: <BitcoinIcon className="h-5 w-5" />,
+                          },
+                          {
+                            id: "solana",
+                            name: "Solana",
+                            icon: <SolanaIcon className="h-5 w-5" />,
+                          },
+                          {
+                            id: "sui",
+                            name: "Sui",
+                            icon: <SuiIcon className="h-5 w-5" />,
+                          },
+                          {
+                            id: "arweave",
+                            name: "Arweave",
+                            icon: <ArweaveIcon className="h-5 w-5" />,
+                          },
+                        ].map((chain) => (
+                          <Button
+                            key={chain.id}
+                            variant="outline"
+                            onClick={() => handleCreateAccount(chain.id)}
+                            className="flex h-24 flex-col gap-2 rounded-lg border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition-all"
+                          >
+                            <div className="rounded-lg bg-slate-50 p-2 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                              {chain.icon}
+                            </div>
+                            <span className="text-xs font-semibold text-slate-700">
+                              {chain.name}
+                            </span>
+                          </Button>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </CardContent>
             </Card>
           </div>
 
           <div className="space-y-6">
-            {/* Payment Wallets (External) */}
-            <div className="space-y-4">
-              <h4 className="flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                <Settings2 className="h-3 w-3" />
-                {t("identities.paymentMethod")}
-              </h4>
-
-              {/* EVM Provider (Irys) */}
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
-                <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <IrysIcon className="h-3.5 w-3.5" />
-                    <span className="text-[11px] font-bold text-slate-600">
-                      {t("identities.paymentProviderEVM")}
-                    </span>
-                  </div>
-                  {isPaymentConnected && (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase">
-                      <span className="h-1 w-1 rounded-full bg-green-500 animate-pulse" />
-                      Live
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4">
-                  {!isPaymentConnected ? (
-                    <ConnectButton.Custom>
-                      {({ openConnectModal }) => (
-                        <Button
-                          onClick={openConnectModal}
-                          variant="outline"
-                          className="h-9 w-full rounded-xl border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
-                        >
-                          <Plus className="mr-2 h-3.5 w-3.5" />
-                          {t("identities.connectProvider", { name: "EVM" })}
-                        </Button>
-                      )}
-                    </ConnectButton.Custom>
-                  ) : (
-                    <ConnectButton.Custom>
-                      {({ account, chain, openAccountModal }) => (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {chain?.iconUrl && (
-                                <img
-                                  src={chain.iconUrl}
-                                  alt=""
-                                  className="h-5 w-5 rounded-full"
-                                />
-                              )}
-                              <span className="text-xs font-bold text-slate-700">
-                                {account.displayName}
-                              </span>
-                            </div>
-                            <span className="text-xs font-bold text-indigo-600">
-                              {account.displayBalance}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={openAccountModal}
-                              className="h-7 flex-1 rounded-lg bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-slate-100"
-                            >
-                              <ExternalLink className="mr-1.5 h-3 w-3" />
-                              {t("identities.managePayment")}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => disconnectEVM()}
-                              className="h-7 w-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50"
-                            >
-                              <Unlink className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </ConnectButton.Custom>
-                  )}
-                </div>
-              </div>
-
-              {/* Arweave Provider (Native) */}
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
-                <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <ArweaveIcon className="h-3.5 w-3.5" />
-                    <span className="text-[11px] font-bold text-slate-600">
-                      {t("identities.paymentProviderArweave")}
-                    </span>
-                  </div>
-                  {isArConnected && (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase">
-                      <span className="h-1 w-1 rounded-full bg-green-500 animate-pulse" />
-                      Live
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4">
-                  {!isArConnected ? (
-                    <Button
-                      onClick={connectArweave}
-                      variant="outline"
-                      className="h-9 w-full rounded-xl border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
-                    >
-                      <Plus className="mr-2 h-3.5 w-3.5" />
-                      {t("identities.connectProvider", { name: "ArConnect" })}
-                    </Button>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="h-5 w-5 rounded-full bg-indigo-50 flex items-center justify-center">
-                            <ArweaveIcon className="h-3 w-3" />
-                          </div>
-                          <span className="text-xs font-bold text-slate-700">
-                            {arAddress?.slice(0, 6)}...{arAddress?.slice(-4)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyAddress(arAddress || "")}
-                          className="h-7 flex-1 rounded-lg bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-slate-100"
-                        >
-                          <Copy className="mr-1.5 h-3 w-3" />
-                          {t("common.copy")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={disconnectArweave}
-                          className="h-7 w-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50"
-                        >
-                          <Unlink className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <p className="px-4 text-[10px] leading-relaxed text-slate-400 italic text-center">
-                {t("identities.paymentDesc")}
-              </p>
-            </div>
-
             <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
               <div className="mb-4 flex items-center gap-3">
                 <div className="rounded-lg bg-green-100 p-2 text-green-600">

@@ -13,7 +13,8 @@
     "securityNoticeDesc": "1. External accounts are for storage payments. 2. The Privacy Layer (Optional) uses a Master Password to encrypt files locally and protect Arweave keys. If not active, uploads will be public.",
     "unlockRequired": "Privacy protection is currently inactive. Activate to enable E2EE features.",
     "footer": "© 2025 Anamnesis — Built with ❤️ for the Permaweb",
-    "copy": "Copy to Clipboard"
+    "copy": "Copy to Clipboard",
+    "loading": "Loading..."
   },
   "unlock": {
     "title": "Activate Secure Vault",

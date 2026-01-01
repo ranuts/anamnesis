@@ -52,6 +52,7 @@ interface WalletContextType {
   addWallet: (input: any, alias: string) => Promise<void>
   createWallet: (chain: WalletRecord["chain"], alias: string) => Promise<void>
   selectWallet: (address: string) => Promise<void>
+  clearActiveWallet: () => void
   getDecryptedInfo: (
     wallet: WalletRecord,
     passwordConfirm: string,
@@ -339,6 +340,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [wallets, masterKey, t],
   )
 
+  const clearActiveWallet = useCallback(() => {
+    setActiveAddress(null)
+    setActiveWallet(null)
+  }, [])
+
   const getDecryptedInfo = useCallback(
     async (wallet: WalletRecord, passwordConfirm: string) => {
       try {
@@ -379,6 +385,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         addWallet,
         createWallet,
         selectWallet,
+        clearActiveWallet,
         getDecryptedInfo,
       }}
     >

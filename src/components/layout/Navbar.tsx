@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "@/i18n/config"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useAccount } from "wagmi"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useWalletManager } from "@/hooks/use-wallet-manager"
 import {
@@ -25,6 +26,8 @@ export function Navbar() {
   const { t } = useTranslation()
   const location = useLocation()
   const walletManager = useWalletManager()
+  const { address: paymentAddress, isConnected: isPaymentConnected } =
+    useAccount()
 
   const navItems = [
     { path: "/", label: t("common.dashboard"), icon: LayoutDashboard },
@@ -107,24 +110,8 @@ export function Navbar() {
           <LanguageSwitcher />
           <div className="mx-1 h-8 w-px bg-slate-200" />
 
-          {/* 统一账户状态展示 */}
+          {/* 统一账户状态展示 - 只显示当前激活的账户（本地或外部，互斥） */}
           <div className="flex items-center gap-2">
-            {/* 当前使用账户 (Account) - 如果存在则优先展示 */}
-            {walletManager.isUnlocked && walletManager.activeAddress && (
-              <Link
-                to="/account"
-                className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/50 px-3 py-1.5 transition-all hover:bg-indigo-50 active:scale-95 shadow-xs"
-              >
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm">
-                  {getChainIcon(activeAccount?.chain)}
-                </div>
-                <span className="text-xs font-bold text-indigo-700">
-                  {shortenedAddress(walletManager.activeAddress)}
-                </span>
-              </Link>
-            )}
-
-            {/* 支付状态 (ConnectButton) */}
             <ConnectButton.Custom>
               {({
                 account,
@@ -135,67 +122,92 @@ export function Navbar() {
               }) => {
                 const ready = mounted
                 const connected = ready && account && chain
-                const hasActiveAccount =
+                const hasLocalAccount =
                   walletManager.isUnlocked && walletManager.activeAddress
 
-                return (
-                  <div
-                    {...(!ready && {
-                      "aria-hidden": true,
-                      style: {
-                        opacity: 0,
-                        pointerEvents: "none",
-                        userSelect: "none",
-                      },
-                    })}
-                  >
-                    {!connected ? (
+                // 如果有本地账户激活，显示本地账户
+                if (hasLocalAccount && activeAccount) {
+                  return (
+                    <Link
+                      to="/account"
+                      className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 transition-all hover:bg-slate-50 active:scale-95 shadow-sm"
+                    >
+                      <div className="flex h-3.5 w-3.5 items-center justify-center">
+                        {getChainIcon(activeAccount.chain)}
+                      </div>
+                      <span className="text-xs font-bold text-slate-700">
+                        {shortenedAddress(walletManager.activeAddress)}
+                      </span>
+                    </Link>
+                  )
+                }
+
+                // 如果没有本地账户激活，但外部账户已连接，显示外部账户
+                if (!hasLocalAccount && connected) {
+                  return (
+                    <Link
+                      to="/account"
+                      className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 transition-all hover:bg-slate-50 active:scale-95 shadow-sm"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      {chain.hasIcon && chain.iconUrl && (
+                        <img
+                          alt={chain.name ?? "Chain icon"}
+                          src={chain.iconUrl}
+                          style={{ width: 14, height: 14 }}
+                        />
+                      )}
+                      <span className="text-xs font-bold text-slate-700">
+                        {account.displayName}
+                      </span>
+                    </Link>
+                  )
+                }
+
+                // 如果没有本地账户，显示外部账户（如果已连接）或连接按钮
+                if (!connected) {
+                  return (
+                    <div
+                      {...(!ready && {
+                        "aria-hidden": true,
+                        style: {
+                          opacity: 0,
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        },
+                      })}
+                    >
                       <button
                         onClick={openConnectModal}
-                        className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-all active:scale-95 ${
-                          hasActiveAccount
-                            ? "border border-dashed border-slate-300 text-slate-400 hover:border-indigo-300 hover:text-indigo-500"
-                            : "bg-slate-900 text-white hover:bg-slate-800"
-                        }`}
+                        className="flex items-center gap-2 rounded-full bg-slate-900 px-4 py-1.5 text-xs font-bold text-white transition-all hover:bg-slate-800 active:scale-95"
                       >
                         <CreditCard className="h-3.5 w-3.5" />
-                        {!hasActiveAccount && (
-                          <span className="hidden sm:inline">
-                            {t("upload.irysConnectAccount")}
-                          </span>
-                        )}
+                        <span className="hidden sm:inline">
+                          {t("upload.irysConnectAccount")}
+                        </span>
                       </button>
-                    ) : (
-                      <button
-                        onClick={openAccountModal}
-                        className={`flex h-8 items-center gap-2 rounded-full border px-2.5 transition-all active:scale-95 shadow-sm ${
-                          hasActiveAccount
-                            ? "border-slate-100 bg-slate-50 text-slate-400"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            hasActiveAccount ? "bg-slate-300" : "bg-green-500"
-                          }`}
-                        />
-                        {!hasActiveAccount && (
-                          <>
-                            {chain.hasIcon && chain.iconUrl && (
-                              <img
-                                alt={chain.name ?? "Chain icon"}
-                                src={chain.iconUrl}
-                                style={{ width: 14, height: 14 }}
-                              />
-                            )}
-                            <span className="text-xs font-bold">
-                              {account.displayName}
-                            </span>
-                          </>
-                        )}
-                      </button>
+                    </div>
+                  )
+                }
+
+                // 外部账户已连接，显示为链接到账户管理页面（和本地账户一样）
+                return (
+                  <Link
+                    to="/account"
+                    className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 transition-all hover:bg-slate-50 active:scale-95 shadow-sm"
+                  >
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                    {chain.hasIcon && chain.iconUrl && (
+                      <img
+                        alt={chain.name ?? "Chain icon"}
+                        src={chain.iconUrl}
+                        style={{ width: 14, height: 14 }}
+                      />
                     )}
-                  </div>
+                    <span className="text-xs font-bold text-slate-700">
+                      {account.displayName}
+                    </span>
+                  </Link>
                 )
               }}
             </ConnectButton.Custom>
