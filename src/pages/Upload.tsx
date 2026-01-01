@@ -333,14 +333,14 @@ export default function UploadPage() {
                       : t("upload.arweaveSelectIdentity")}
                   </div>
 
-                  {walletManager.wallets.length > 0 ? (
+                  {walletManager.wallets.filter(w => w.chain === 'arweave').length > 0 ? (
                     <div className="mx-auto grid max-w-xs grid-cols-1 gap-2">
-                      {walletManager.wallets.map((w) => (
+                      {walletManager.wallets.filter(w => w.chain === 'arweave').map((w) => (
                         <Button
                           key={w.id}
                           variant="outline"
                           className="h-auto justify-start rounded-xl border-slate-200 px-4 py-3 text-left hover:border-indigo-600 hover:bg-indigo-50"
-                          onClick={() => walletManager.selectWallet(w)}
+                          onClick={() => walletManager.selectWallet(w.address)}
                         >
                           <div className="w-full truncate">
                             <div className="text-sm font-bold text-slate-900">

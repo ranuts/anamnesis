@@ -55,12 +55,18 @@ export default function AccountPage() {
   const handleAddWallet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWalletInput || !newWalletAlias) {
-      toast.error(t("unlock.errorLength")); // 这里暂时借用一个，或者之后补更精准的
+      toast.error(t("identities.keyPlaceholder"));
       return;
     }
     await walletManager.addWallet(newWalletInput, newWalletAlias);
     setNewWalletInput("");
     setNewWalletAlias("");
+  };
+
+  const handleCreateWallet = async (chain: any) => {
+    const alias = prompt(t("identities.aliasPrompt"), `${chain.toUpperCase()}-Account`);
+    if (!alias) return;
+    await walletManager.createWallet(chain, alias);
   };
 
   const copyAddress = (address: string) => {
@@ -167,50 +173,84 @@ export default function AccountPage() {
           <div className="lg:col-span-2 space-y-8">
             <Tabs defaultValue="ethereum" className="w-full">
               <TabsList className="w-full justify-start h-auto p-1 bg-slate-100 rounded-xl mb-6 flex-wrap">
-                {["ethereum", "arweave", "solana", "sui"].map(chain => (
+                {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(chain => (
                   <TabsTrigger key={chain} value={chain} className="px-6 py-2.5 rounded-lg capitalize data-[state=active]:bg-white data-[state=active]:shadow-sm">
                     {chain}
                   </TabsTrigger>
                 ))}
               </TabsList>
               <TabsContent value="ethereum">{renderWalletList("ethereum")}</TabsContent>
-              <TabsContent value="arweave">{renderWalletList("arweave")}</TabsContent>
+              <TabsContent value="bitcoin">{renderWalletList("bitcoin")}</TabsContent>
               <TabsContent value="solana">{renderWalletList("solana")}</TabsContent>
               <TabsContent value="sui">{renderWalletList("sui")}</TabsContent>
+              <TabsContent value="arweave">{renderWalletList("arweave")}</TabsContent>
             </Tabs>
 
             <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-              <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
-                  <Plus className="w-5 h-5" /> {t("identities.addNew")}
-                </CardTitle>
-              </div>
-              <CardContent className="p-6">
-                <form onSubmit={handleAddWallet} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">{t("identities.aliasLabel")}</label>
-                      <Input 
-                        placeholder={t("identities.aliasPlaceholder")}
-                        value={newWalletAlias}
-                        onChange={(e) => setNewWalletAlias(e.target.value)}
-                      />
+              <Tabs defaultValue="import">
+                <div className="bg-slate-50 px-6 py-2 border-b border-slate-100 flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
+                    <Plus className="w-5 h-5" /> {t("identities.addNew")}
+                  </CardTitle>
+                  <TabsList className="bg-slate-200/50 p-1 h-9">
+                    <TabsTrigger value="import" className="text-xs px-3 py-1.5">{t("identities.import")}</TabsTrigger>
+                    <TabsTrigger value="create" className="text-xs px-3 py-1.5">{t("identities.new")}</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <CardContent className="p-6">
+                  <TabsContent value="import" className="mt-0">
+                    <form onSubmit={handleAddWallet} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">{t("identities.aliasLabel")}</label>
+                          <Input 
+                            placeholder={t("identities.aliasPlaceholder")}
+                            value={newWalletAlias}
+                            onChange={(e) => setNewWalletAlias(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">{t("identities.keyLabel")}</label>
+                          <Input 
+                            type="password"
+                            placeholder={t("identities.keyPlaceholder")}
+                            value={newWalletInput}
+                            onChange={(e) => setNewWalletInput(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+                        {t("identities.addSubmit")}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="create" className="mt-0">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {[
+                        { id: "ethereum", name: "Ethereum / Base / Hyper", icon: <Wallet className="w-4 h-4" /> },
+                        { id: "bitcoin", name: "Bitcoin", icon: <Wallet className="w-4 h-4" /> },
+                        { id: "solana", name: "Solana", icon: <Wallet className="w-4 h-4" /> },
+                        { id: "sui", name: "Sui", icon: <Wallet className="w-4 h-4" /> },
+                        { id: "arweave", name: "Arweave", icon: <Wallet className="w-4 h-4" /> },
+                      ].map((chain) => (
+                        <Button
+                          key={chain.id}
+                          variant="outline"
+                          onClick={() => handleCreateWallet(chain.id)}
+                          className="h-20 flex flex-col gap-2 border-slate-100 hover:border-indigo-600 hover:bg-indigo-50/30 rounded-xl"
+                        >
+                          <div className="p-2 bg-slate-50 rounded-lg text-slate-600 group-hover:text-indigo-600">
+                            {chain.icon}
+                          </div>
+                          <span className="text-xs font-bold text-slate-700">{chain.name}</span>
+                        </Button>
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">{t("identities.keyLabel")}</label>
-                      <Input 
-                        type="password"
-                        placeholder={t("identities.keyPlaceholder")}
-                        value={newWalletInput}
-                        onChange={(e) => setNewWalletInput(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
-                    {t("identities.addSubmit")}
-                  </Button>
-                </form>
-              </CardContent>
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
             </Card>
           </div>
 

@@ -5,7 +5,7 @@ export interface WalletRecord {
   address: string
   encryptedKey: string // Encrypted with Master Password
   alias: string
-  chain: "ethereum" | "arweave" | "solana" | "sui" | "other"
+  chain: "ethereum" | "arweave" | "solana" | "sui" | "bitcoin" | "other"
   vaultId: string // Hash of the derived key to separate "compartments"
   createdAt: number
 }

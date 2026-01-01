@@ -55,11 +55,12 @@ export function Navbar() {
           <div className="h-8 w-px bg-slate-200" />
           <ConnectButton />
           <div className="h-8 w-px bg-slate-200" />
-          <div
-            className={`flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${
+          <Link
+            to="/account"
+            className={`flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-all hover:shadow-md active:scale-95 ${
               walletManager.isUnlocked
-                ? "border-green-200 bg-green-50 text-green-600"
-                : "border-amber-200 bg-amber-50 text-amber-600"
+                ? "border-green-200 bg-green-50 text-green-600 hover:bg-green-100"
+                : "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100"
             }`}
           >
             {walletManager.isUnlocked ? (
@@ -72,17 +73,17 @@ export function Navbar() {
                 ? t("common.activeIdentity")
                 : t("common.identityLocked")}
             </span>
-          </div>
+          </Link>
 
           {walletManager.isUnlocked && walletManager.activeAddress && (
             <div className="hidden flex-col items-end border-l border-slate-200 pl-4 lg:flex">
               <span className="mb-1 text-[10px] leading-none font-bold tracking-tighter text-slate-400 uppercase">
-                Active Identity
+                {t("common.activeIdentityLabel")}
               </span>
               <span className="max-w-[100px] truncate text-xs font-bold text-slate-700">
                 {walletManager.wallets.find(
                   (w) => w.address === walletManager.activeAddress,
-                )?.alias || "Unnamed"}
+                )?.alias || t("common.noIdentity")}
               </span>
             </div>
           )}

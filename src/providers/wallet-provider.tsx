@@ -13,6 +13,16 @@ import { arweave } from "@/lib/storage"
 import { toast } from "sonner"
 import { useTranslation } from "@/i18n/config"
 import { ethers } from "ethers"
+import * as solana from "@solana/web3.js"
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519"
+import * as bitcoin from "bitcoinjs-lib"
+import * as ecc from "tiny-secp256k1"
+import ECPairFactory from "ecpair"
+import bs58 from "bs58"
+
+// Initialize Bitcoin ecc
+bitcoin.initEccLib(ecc)
+const ECPair = ECPairFactory(ecc)
 
 interface WalletContextType {
   wallets: WalletRecord[]
@@ -24,6 +34,7 @@ interface WalletContextType {
   unlock: (password: string) => Promise<boolean>
   logout: () => void
   addWallet: (input: any, alias: string) => Promise<void>
+  createWallet: (chain: WalletRecord["chain"], alias: string) => Promise<void>
   selectWallet: (address: string) => Promise<void>
   getDecryptedKey: (wallet: WalletRecord, passwordConfirm: string) => Promise<string>
 }
@@ -90,20 +101,125 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }
 
   const detectChainAndAddress = async (input: string | any) => {
+    // 1. Arweave JWK
     if (typeof input === "object" && input.kty === "RSA") {
       const address = await arweave.wallets.jwkToAddress(input)
       return { chain: "arweave" as const, address, key: JSON.stringify(input) }
     }
+
     const str = String(input).trim()
+
+    // 2. Ethereum Private Key (Hex, 64 chars)
     if (/^(0x)?[0-9a-fA-F]{64}$/.test(str)) {
       const wallet = new ethers.Wallet(str.startsWith("0x") ? str : "0x" + str)
       return { chain: "ethereum" as const, address: wallet.address, key: str }
     }
-    // TODO: 完善 Solana/Sui 等地址识别逻辑
-    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(str)) {
-        return { chain: "solana" as const, address: str.slice(0, 10) + "...", key: str }
+
+    // 3. Solana Secret Key (Base58)
+    if (/^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(str)) {
+      try {
+        const keypair = solana.Keypair.fromSecretKey(bs58.decode(str))
+        return {
+          chain: "solana" as const,
+          address: keypair.publicKey.toBase58(),
+          key: str,
+        }
+      } catch (e) {}
     }
+
+    // 4. Sui Private Key
+    if (str.startsWith("suiprivkey")) {
+      try {
+        const keypair = Ed25519Keypair.fromSecretKey(str)
+        return {
+          chain: "sui" as const,
+          address: keypair.getPublicKey().toSuiAddress(),
+          key: str,
+        }
+      } catch (e) {}
+    }
+
+    // 5. Bitcoin WIF (Primary: Taproot bc1p, Fallback: SegWit bc1q)
+    try {
+      const keyPair = ECPair.fromWIF(str)
+      // Taproot (bc1p)
+      const { address: taprootAddress } = bitcoin.payments.p2tr({
+        internalPubkey: Buffer.from(keyPair.publicKey.slice(1, 33)),
+      })
+      if (taprootAddress)
+        return { chain: "bitcoin" as const, address: taprootAddress, key: str }
+    } catch (e) {}
+
+    // Fallback for Arweave JWK or Solana Uint8Array in string format
+    try {
+      const parsed = JSON.parse(str)
+      if (parsed.kty === "RSA") {
+        const address = await arweave.wallets.jwkToAddress(parsed)
+        return { chain: "arweave" as const, address, key: str }
+      }
+      if (Array.isArray(parsed) && parsed.length === 64) {
+        const keypair = solana.Keypair.fromSecretKey(new Uint8Array(parsed))
+        return {
+          chain: "solana" as const,
+          address: keypair.publicKey.toBase58(),
+          key: bs58.encode(new Uint8Array(parsed)),
+        }
+      }
+    } catch (e) {}
+
     throw new Error("Unsupported or invalid key format")
+  }
+
+  const createWallet = async (chain: WalletRecord["chain"], alias: string) => {
+    if (!masterKey || !vaultId) return
+    try {
+      let key: string
+      let address: string
+
+      if (chain === "ethereum") {
+        const wallet = ethers.Wallet.createRandom()
+        key = wallet.privateKey
+        address = wallet.address
+      } else if (chain === "solana") {
+        const keypair = solana.Keypair.generate()
+        key = bs58.encode(keypair.secretKey)
+        address = keypair.publicKey.toBase58()
+      } else if (chain === "sui") {
+        const keypair = Ed25519Keypair.generate()
+        key = keypair.getSecretKey()
+        address = keypair.getPublicKey().toSuiAddress()
+      } else if (chain === "bitcoin") {
+        const keyPair = ECPair.makeRandom()
+        key = keyPair.toWIF()
+        const { address: btcAddress } = bitcoin.payments.p2wpkh({
+          pubkey: Buffer.from(keyPair.publicKey),
+        })
+        address = btcAddress || "unknown"
+      } else if (chain === "arweave") {
+        const jwk = await arweave.wallets.generate()
+        key = JSON.stringify(jwk)
+        address = await arweave.wallets.jwkToAddress(jwk)
+      } else {
+        throw new Error("Unsupported chain for creation")
+      }
+
+      const { ciphertext, nonce } = await encryptData(toBytes(key), masterKey)
+      await db.wallets.add({
+        address,
+        encryptedKey: JSON.stringify({
+          ciphertext: toBase64(ciphertext),
+          nonce: toBase64(nonce),
+        }),
+        alias,
+        chain,
+        vaultId,
+        createdAt: Date.now(),
+      })
+      await loadWallets()
+      toast.success(t("identities.successAdded", { alias }))
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create wallet")
+    }
   }
 
   const addWallet = async (input: any, alias: string) => {
@@ -167,6 +283,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         unlock,
         logout,
         addWallet,
+        createWallet,
         selectWallet,
         getDecryptedKey,
       }}

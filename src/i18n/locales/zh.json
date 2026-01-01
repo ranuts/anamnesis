@@ -7,6 +7,7 @@
     "activeIdentity": "隐私保险箱已开启",
     "identityLocked": "隐私层已锁定 (可选)",
     "noIdentity": "未选择身份",
+    "activeIdentityLabel": "活跃身份",
     "goToDashboard": "前往控制面板",
     "securityNotice": "隐私存储说明",
     "securityNoticeDesc": "1. 外部钱包用于支付存储费用。 2. 隐私层（可选）通过主密码在本地加密文件并保护 Arweave 密钥包。如果你不开启隐私层，上传的文件将是公开的。",

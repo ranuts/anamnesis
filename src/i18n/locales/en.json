@@ -7,6 +7,7 @@
     "activeIdentity": "Secure Vault Active",
     "identityLocked": "Privacy Layer Locked (Optional)",
     "noIdentity": "No Identity Selected",
+    "activeIdentityLabel": "Active Identity",
     "goToDashboard": "Go to Dashboard",
     "securityNotice": "Privacy Storage Info",
     "securityNoticeDesc": "1. External wallets are for storage payments. 2. The Privacy Layer (Optional) uses a Master Password to encrypt files locally and protect Arweave keys. If not active, uploads will be public.",
