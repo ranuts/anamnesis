@@ -333,25 +333,30 @@ export default function UploadPage() {
                       : t("upload.arweaveSelectIdentity")}
                   </div>
 
-                  {walletManager.wallets.filter(w => w.chain === 'arweave').length > 0 ? (
+                  {walletManager.wallets.filter((w) => w.chain === "arweave")
+                    .length > 0 ? (
                     <div className="mx-auto grid max-w-xs grid-cols-1 gap-2">
-                      {walletManager.wallets.filter(w => w.chain === 'arweave').map((w) => (
-                        <Button
-                          key={w.id}
-                          variant="outline"
-                          className="h-auto justify-start rounded-xl border-slate-200 px-4 py-3 text-left hover:border-indigo-600 hover:bg-indigo-50"
-                          onClick={() => walletManager.selectWallet(w.address)}
-                        >
-                          <div className="w-full truncate">
-                            <div className="text-sm font-bold text-slate-900">
-                              {w.alias}
+                      {walletManager.wallets
+                        .filter((w) => w.chain === "arweave")
+                        .map((w) => (
+                          <Button
+                            key={w.id}
+                            variant="outline"
+                            className="h-auto justify-start rounded-xl border-slate-200 px-4 py-3 text-left hover:border-indigo-600 hover:bg-indigo-50"
+                            onClick={() =>
+                              walletManager.selectWallet(w.address)
+                            }
+                          >
+                            <div className="w-full truncate">
+                              <div className="text-sm font-bold text-slate-900">
+                                {w.alias}
+                              </div>
+                              <div className="mt-0.5 max-w-[200px] truncate font-mono text-[10px] text-slate-500">
+                                {w.address}
+                              </div>
                             </div>
-                            <div className="mt-0.5 max-w-[200px] truncate font-mono text-[10px] text-slate-500">
-                              {w.address}
-                            </div>
-                          </div>
-                        </Button>
-                      ))}
+                          </Button>
+                        ))}
                     </div>
                   ) : (
                     <div className="flex justify-center gap-3">

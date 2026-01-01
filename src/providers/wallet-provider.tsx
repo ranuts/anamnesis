@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react"
 import { db, type WalletRecord } from "@/lib/db"
 import {
   deriveKey,
@@ -45,7 +52,10 @@ interface WalletContextType {
   addWallet: (input: any, alias: string) => Promise<void>
   createWallet: (chain: WalletRecord["chain"], alias: string) => Promise<void>
   selectWallet: (address: string) => Promise<void>
-  getDecryptedInfo: (wallet: WalletRecord, passwordConfirm: string) => Promise<DecryptedData>
+  getDecryptedInfo: (
+    wallet: WalletRecord,
+    passwordConfirm: string,
+  ) => Promise<DecryptedData>
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -87,27 +97,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     loadWallets()
   }, [loadWallets])
 
-  const unlock = async (password: string) => {
-    try {
-      const key = await deriveKey(password, VAULT_SALT)
-      const vid = await getVaultId(key)
-      setMasterKey(key)
-      setVaultId(vid)
-      toast.success(t("unlock.success"))
-      return true
-    } catch (e) {
-      toast.error(t("unlock.failed"))
-      return false
-    }
-  }
+  const unlock = useCallback(
+    async (password: string) => {
+      try {
+        const key = await deriveKey(password, VAULT_SALT)
+        const vid = await getVaultId(key)
+        setMasterKey(key)
+        setVaultId(vid)
+        toast.success(t("unlock.success"))
+        return true
+      } catch (e) {
+        toast.error(t("unlock.failed"))
+        return false
+      }
+    },
+    [t],
+  )
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setMasterKey(null)
     setVaultId(null)
     setActiveAddress(null)
     setActiveWallet(null)
     setWallets([])
-  }
+  }, [])
 
   const detectChainAndAddress = async (input: string | any) => {
     // 1. Arweave JWK
@@ -196,139 +209,160 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     throw new Error("Unsupported or invalid key format")
   }
 
-  const createWallet = async (chain: WalletRecord["chain"], alias: string) => {
-    if (!masterKey || !vaultId) return
-    try {
-      let key: string
-      let address: string
-      let mnemonic: string | undefined
+  const createWallet = useCallback(
+    async (chain: WalletRecord["chain"], alias: string) => {
+      if (!masterKey || !vaultId) return
+      try {
+        let key: string
+        let address: string
+        let mnemonic: string | undefined
 
-      if (chain === "arweave") {
-        // Arweave typically doesn't use BIP39 mnemonics in the same way, generating JWK
-        const jwk = await arweave.wallets.generate()
-        key = JSON.stringify(jwk)
-        address = await arweave.wallets.jwkToAddress(jwk)
-      } else {
-        // Generate a standard BIP39 mnemonic for others
-        mnemonic = bip39.generateMnemonic()
-        const seed = await bip39.mnemonicToSeed(mnemonic)
-
-        if (chain === "ethereum") {
-          const wallet = ethers.Wallet.fromPhrase(mnemonic)
-          key = wallet.privateKey
-          address = wallet.address
-        } else if (chain === "solana") {
-          const derived = derivePath("m/44'/501'/0'/0'", seed.toString("hex"))
-          const keypair = solana.Keypair.fromSeed(derived.key)
-          key = bs58.encode(keypair.secretKey)
-          address = keypair.publicKey.toBase58()
-        } else if (chain === "sui") {
-          const keypair = Ed25519Keypair.deriveKeypair(mnemonic)
-          key = keypair.getSecretKey()
-          address = keypair.getPublicKey().toSuiAddress()
-        } else if (chain === "bitcoin") {
-          const root = bip32.fromSeed(seed)
-          const child = root.derivePath("m/86'/0'/0'/0/0")
-          const { address: btcAddress } = bitcoin.payments.p2tr({
-            internalPubkey: Buffer.from(child.publicKey.slice(1, 33)),
-          })
-          key = ECPair.fromPrivateKey(child.privateKey!).toWIF()
-          address = btcAddress || "unknown"
+        if (chain === "arweave") {
+          // Arweave typically doesn't use BIP39 mnemonics in the same way, generating JWK
+          const jwk = await arweave.wallets.generate()
+          key = JSON.stringify(jwk)
+          address = await arweave.wallets.jwkToAddress(jwk)
         } else {
-          throw new Error("Unsupported chain for creation")
+          // Generate a standard BIP39 mnemonic for others
+          mnemonic = bip39.generateMnemonic()
+          const seed = await bip39.mnemonicToSeed(mnemonic)
+
+          if (chain === "ethereum") {
+            const wallet = ethers.Wallet.fromPhrase(mnemonic)
+            key = wallet.privateKey
+            address = wallet.address
+          } else if (chain === "solana") {
+            const derived = derivePath("m/44'/501'/0'/0'", seed.toString("hex"))
+            const keypair = solana.Keypair.fromSeed(derived.key)
+            key = bs58.encode(keypair.secretKey)
+            address = keypair.publicKey.toBase58()
+          } else if (chain === "sui") {
+            const keypair = Ed25519Keypair.deriveKeypair(mnemonic)
+            key = keypair.getSecretKey()
+            address = keypair.getPublicKey().toSuiAddress()
+          } else if (chain === "bitcoin") {
+            const root = bip32.fromSeed(seed)
+            const child = root.derivePath("m/86'/0'/0'/0/0")
+            const { address: btcAddress } = bitcoin.payments.p2tr({
+              internalPubkey: Buffer.from(child.publicKey.slice(1, 33)),
+            })
+            key = ECPair.fromPrivateKey(child.privateKey!).toWIF()
+            address = btcAddress || "unknown"
+          } else {
+            throw new Error("Unsupported chain for creation")
+          }
         }
+
+        const storageData: DecryptedData = { key, mnemonic }
+        const { ciphertext, nonce } = await encryptData(
+          toBytes(JSON.stringify(storageData)),
+          masterKey,
+        )
+        await db.wallets.add({
+          address,
+          encryptedKey: JSON.stringify({
+            ciphertext: toBase64(ciphertext),
+            nonce: toBase64(nonce),
+          }),
+          alias,
+          chain,
+          vaultId,
+          createdAt: Date.now(),
+        })
+        await loadWallets()
+        toast.success(t("identities.successAdded", { alias }))
+      } catch (e: any) {
+        console.error("Wallet creation error:", e)
+        toast.error(e.message || "Failed to create wallet")
       }
+    },
+    [masterKey, vaultId, loadWallets, t],
+  )
 
-      const storageData: DecryptedData = { key, mnemonic }
-      const { ciphertext, nonce } = await encryptData(
-        toBytes(JSON.stringify(storageData)),
-        masterKey,
-      )
-      await db.wallets.add({
-        address,
-        encryptedKey: JSON.stringify({
-          ciphertext: toBase64(ciphertext),
-          nonce: toBase64(nonce),
-        }),
-        alias,
-        chain,
-        vaultId,
-        createdAt: Date.now(),
-      })
-      await loadWallets()
-      toast.success(t("identities.successAdded", { alias }))
-    } catch (e: any) {
-      console.error("Wallet creation error:", e)
-      toast.error(e.message || "Failed to create wallet")
-    }
-  }
+  const addWallet = useCallback(
+    async (input: any, alias: string) => {
+      if (!masterKey || !vaultId) return
+      try {
+        const { chain, address, key, mnemonic } =
+          await detectChainAndAddress(input)
+        const storageData: DecryptedData = { key, mnemonic }
+        const { ciphertext, nonce } = await encryptData(
+          toBytes(JSON.stringify(storageData)),
+          masterKey,
+        )
+        await db.wallets.add({
+          address,
+          encryptedKey: JSON.stringify({
+            ciphertext: toBase64(ciphertext),
+            nonce: toBase64(nonce),
+          }),
+          alias,
+          chain,
+          vaultId,
+          createdAt: Date.now(),
+        })
+        await loadWallets()
+        toast.success(t("identities.successAdded", { alias }))
+      } catch (e: any) {
+        toast.error(e.message || "Failed to add wallet")
+      }
+    },
+    [masterKey, vaultId, loadWallets, t],
+  )
 
-  const addWallet = async (input: any, alias: string) => {
-    if (!masterKey || !vaultId) return
-    try {
-      const { chain, address, key, mnemonic } =
-        await detectChainAndAddress(input)
-      const storageData: DecryptedData = { key, mnemonic }
-      const { ciphertext, nonce } = await encryptData(
-        toBytes(JSON.stringify(storageData)),
-        masterKey,
-      )
-      await db.wallets.add({
-        address,
-        encryptedKey: JSON.stringify({
-          ciphertext: toBase64(ciphertext),
-          nonce: toBase64(nonce),
-        }),
-        alias,
-        chain,
-        vaultId,
-        createdAt: Date.now(),
-      })
-      await loadWallets()
-      toast.success(t("identities.successAdded", { alias }))
-    } catch (e: any) {
-      toast.error(e.message || "Failed to add wallet")
-    }
-  }
+  const selectWallet = useCallback(
+    async (address: string) => {
+      const walletRecord = wallets.find((w) => w.address === address)
+      if (!walletRecord || !masterKey) return
 
-  const selectWallet = async (address: string) => {
-    const walletRecord = wallets.find((w) => w.address === address)
-    if (!walletRecord || !masterKey) return
+      try {
+        const { ciphertext, nonce } = JSON.parse(walletRecord.encryptedKey)
+        const decrypted = await decryptData(
+          fromBase64(ciphertext),
+          fromBase64(nonce),
+          masterKey,
+        )
+        const data: DecryptedData = JSON.parse(fromBytes(decrypted))
 
-    try {
-      const { ciphertext, nonce } = JSON.parse(walletRecord.encryptedKey)
-      const decrypted = await decryptData(
-        fromBase64(ciphertext),
-        fromBase64(nonce),
-        masterKey,
-      )
-      const data: DecryptedData = JSON.parse(fromBytes(decrypted))
+        setActiveAddress(address)
+        setActiveWallet(
+          walletRecord.chain === "arweave" ? JSON.parse(data.key) : data.key,
+        )
+        toast.success(
+          t("identities.successActive", { alias: walletRecord.alias }),
+        )
+      } catch (e) {
+        toast.error("Failed to activate wallet")
+      }
+    },
+    [wallets, masterKey, t],
+  )
 
-      setActiveAddress(address)
-      setActiveWallet(
-        walletRecord.chain === "arweave" ? JSON.parse(data.key) : data.key,
-      )
-      toast.success(t("identities.successActive", { alias: walletRecord.alias }))
-    } catch (e) {
-      toast.error("Failed to activate wallet")
-    }
-  }
+  const getDecryptedInfo = useCallback(
+    async (wallet: WalletRecord, passwordConfirm: string) => {
+      try {
+        const key = await deriveKey(passwordConfirm, VAULT_SALT)
+        const vid = await getVaultId(key)
 
-  const getDecryptedInfo = async (
-    wallet: WalletRecord,
-    passwordConfirm: string,
-  ) => {
-    const key = await deriveKey(passwordConfirm, VAULT_SALT)
-    const vid = await getVaultId(key)
-    if (vid !== vaultId) throw new Error("Incorrect password")
-    const { ciphertext, nonce } = JSON.parse(wallet.encryptedKey)
-    const decrypted = await decryptData(
-      fromBase64(ciphertext),
-      fromBase64(nonce),
-      key,
-    )
-    return JSON.parse(fromBytes(decrypted))
-  }
+        // 如果当前 session 有 vaultId，先进行快速比对
+        if (vaultId && vid !== vaultId) {
+          throw new Error("Incorrect password")
+        }
+
+        const { ciphertext, nonce } = JSON.parse(wallet.encryptedKey)
+        const decrypted = await decryptData(
+          fromBase64(ciphertext),
+          fromBase64(nonce),
+          key,
+        )
+        return JSON.parse(fromBytes(decrypted))
+      } catch (e: any) {
+        console.error("Decryption info error:", e)
+        throw new Error(e.message || "Incorrect password or decryption failed")
+      }
+    },
+    [vaultId],
+  )
 
   return (
     <WalletContext.Provider
@@ -359,4 +393,3 @@ export function useWallet() {
   }
   return context
 }
-

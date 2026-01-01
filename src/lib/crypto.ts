@@ -19,10 +19,10 @@ export const deriveKey = async (password: string, salt: Uint8Array) => {
     enc.encode(password),
     "PBKDF2",
     false,
-    ["deriveBits", "deriveKey"],
+    ["deriveBits"],
   )
 
-  const derivedKey = await window.crypto.subtle.deriveKey(
+  const derivedBits = await window.crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
       salt: salt,
@@ -30,13 +30,14 @@ export const deriveKey = async (password: string, salt: Uint8Array) => {
       hash: "SHA-256",
     },
     keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
+    256,
   )
 
-  const rawKey = await window.crypto.subtle.exportKey("raw", derivedKey)
-  return new Uint8Array(rawKey)
+  // 关键修复：强制创建一个全新的 Uint8Array 副本，避免使用可能存在的 SharedArrayBuffer
+  // 这确保了与 libsodium WASM 内存空间的兼容性
+  const cleanKey = new Uint8Array(32)
+  cleanKey.set(new Uint8Array(derivedBits))
+  return cleanKey
 }
 
 // Encrypt data with a key
