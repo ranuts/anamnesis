@@ -25,7 +25,7 @@ export const deriveKey = async (password: string, salt: Uint8Array) => {
   const derivedBits = await window.crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
-      salt: salt,
+      salt: salt as any,
       iterations: 100000,
       hash: "SHA-256",
     },
