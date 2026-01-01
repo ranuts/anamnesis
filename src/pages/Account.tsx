@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useTranslation } from "@/i18n/config"
 import { useWalletManager } from "@/hooks/use-wallet-manager"
 import { toast } from "sonner"
-import { useAccount, useDisconnect } from "wagmi"
+import { useAccount, useDisconnect, useConnections } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { getBalance, type BalanceResult } from "@/lib/balance"
 import { db } from "@/lib/db"
@@ -51,13 +51,32 @@ import { Trans } from "react-i18next"
 export default function AccountPage() {
   const { t } = useTranslation()
   const walletManager = useWalletManager()
-  const { address: paymentAddress, isConnected: isPaymentConnected } =
-    useAccount()
+  const {
+    address: paymentAddress,
+    isConnected: isPaymentConnected,
+    connector,
+  } = useAccount()
   const { disconnect: disconnectEVM } = useDisconnect()
+  const connections = useConnections()
 
   // Arweave 外部账户状态
   const [arAddress, setArAddress] = useState<string | null>(null)
   const [isArConnected, setIsArConnected] = useState(false)
+
+  // Solana 外部账户状态
+  const [solAddress, setSolAddress] = useState<string | null>(null)
+  const [isSolConnected, setIsSolConnected] = useState(false)
+
+  // Sui 外部账户状态
+  const [suiAddress, setSuiAddress] = useState<string | null>(null)
+  const [isSuiConnected, setIsSuiConnected] = useState(false)
+
+  // 所有 EVM 账户地址（从钱包提供者获取）
+  const [allEVMAddresses, setAllEVMAddresses] = useState<string[]>([])
+  // 存储所有曾经连接过的账户地址（用于追踪多个账户）
+  const [seenEVMAddresses, setSeenEVMAddresses] = useState<Set<string>>(
+    new Set(),
+  )
 
   const checkArConnect = async () => {
     if (window.arweaveWallet) {
@@ -78,6 +97,241 @@ export default function AccountPage() {
     window.addEventListener("walletSwitch", checkArConnect)
     return () => window.removeEventListener("walletSwitch", checkArConnect)
   }, [])
+
+  // 检查 Solana 钱包连接
+  const checkSolConnect = async () => {
+    const solana = (window as any).solana
+    if (solana && solana.isPhantom) {
+      try {
+        const resp = await solana.connect({ onlyIfTrusted: false })
+        if (resp?.publicKey) {
+          setSolAddress(resp.publicKey.toString())
+          setIsSolConnected(true)
+        }
+      } catch (e) {
+        setIsSolConnected(false)
+        setSolAddress(null)
+      }
+    } else {
+      setIsSolConnected(false)
+      setSolAddress(null)
+    }
+  }
+
+  // 检查 Sui 钱包连接
+  const checkSuiConnect = async () => {
+    const suiWallet = (window as any).suiWallet
+    if (suiWallet) {
+      try {
+        const accounts = await suiWallet.getAccounts()
+        if (accounts && accounts.length > 0) {
+          setSuiAddress(accounts[0])
+          setIsSuiConnected(true)
+        }
+      } catch (e) {
+        setIsSuiConnected(false)
+        setSuiAddress(null)
+      }
+    } else {
+      setIsSuiConnected(false)
+      setSuiAddress(null)
+    }
+  }
+
+  useEffect(() => {
+    checkSolConnect()
+    checkSuiConnect()
+  }, [])
+
+  // 连接 Solana 钱包
+  const connectSolana = async () => {
+    const solana = (window as any).solana
+    if (!solana || !solana.isPhantom) {
+      toast.error("请先安装 Phantom 钱包", {
+        action: {
+          label: "安装",
+          onClick: () => window.open("https://phantom.app/", "_blank"),
+        },
+      })
+      return
+    }
+    try {
+      const resp = await solana.connect()
+      if (resp?.publicKey) {
+        setSolAddress(resp.publicKey.toString())
+        setIsSolConnected(true)
+        toast.success("Solana 钱包连接成功")
+      }
+    } catch (e: any) {
+      if (e.code !== 4001) {
+        // 用户拒绝连接
+        toast.error("连接失败：" + (e.message || "未知错误"))
+      }
+    }
+  }
+
+  // 断开 Solana 钱包
+  const disconnectSolana = async () => {
+    const solana = (window as any).solana
+    if (solana) {
+      try {
+        await solana.disconnect()
+        setSolAddress(null)
+        setIsSolConnected(false)
+        toast.success("已断开 Solana 钱包")
+      } catch (e) {
+        console.error("Failed to disconnect Solana:", e)
+      }
+    }
+  }
+
+  // 连接 Sui 钱包
+  const connectSui = async () => {
+    const suiWallet = (window as any).suiWallet
+    if (!suiWallet) {
+      toast.error("请先安装 Sui Wallet", {
+        action: {
+          label: "安装",
+          onClick: () =>
+            window.open(
+              "https://chrome.google.com/webstore/detail/sui-wallet/opcgpfmipidbgpenhmajoajpbobppdil",
+              "_blank",
+            ),
+        },
+      })
+      return
+    }
+    try {
+      await suiWallet.requestPermissions()
+      const accounts = await suiWallet.getAccounts()
+      if (accounts && accounts.length > 0) {
+        setSuiAddress(accounts[0])
+        setIsSuiConnected(true)
+        toast.success("Sui 钱包连接成功")
+      }
+    } catch (e: any) {
+      if (e.code !== 4001) {
+        toast.error("连接失败：" + (e.message || "未知错误"))
+      }
+    }
+  }
+
+  // 断开 Sui 钱包
+  const disconnectSui = async () => {
+    const suiWallet = (window as any).suiWallet
+    if (suiWallet) {
+      try {
+        await suiWallet.disconnect()
+        setSuiAddress(null)
+        setIsSuiConnected(false)
+        toast.success("已断开 Sui 钱包")
+      } catch (e) {
+        console.error("Failed to disconnect Sui:", e)
+      }
+    }
+  }
+
+  // 获取所有 EVM 账户地址
+  useEffect(() => {
+    const fetchAllEVMAddresses = async () => {
+      if (!isPaymentConnected || !connector) {
+        setAllEVMAddresses([])
+        return
+      }
+
+      const addresses = new Set<string>()
+
+      // 添加当前激活的账户
+      if (paymentAddress) {
+        addresses.add(paymentAddress)
+      }
+
+      // 添加所有曾经见过的账户
+      seenEVMAddresses.forEach((addr) => {
+        addresses.add(addr)
+      })
+
+      // 尝试从连接中获取所有账户
+      if (connections && Array.isArray(connections) && connections.length > 0) {
+        connections.forEach((conn) => {
+          if (
+            conn.accounts &&
+            Array.isArray(conn.accounts) &&
+            conn.accounts.length > 0
+          ) {
+            conn.accounts.forEach((acc: { address: string }) => {
+              if (acc && acc.address) {
+                addresses.add(acc.address)
+              }
+            })
+          }
+        })
+      }
+
+      // 尝试从钱包提供者获取所有账户（如 MetaMask）
+      try {
+        if ("provider" in connector && connector.provider) {
+          const provider = (connector as any).provider
+          if (provider && typeof provider.request === "function") {
+            // 使用 eth_accounts 获取已授权的账户
+            const accounts = await provider.request({ method: "eth_accounts" })
+            if (accounts && Array.isArray(accounts)) {
+              accounts.forEach((addr: string) => {
+                if (addr && typeof addr === "string") {
+                  addresses.add(addr)
+                }
+              })
+            }
+          }
+        }
+      } catch (e) {
+        // 忽略错误，继续使用已获取的账户
+        console.debug("Failed to fetch all EVM accounts:", e)
+      }
+
+      // 更新已见过的账户集合
+      setSeenEVMAddresses((prev) => {
+        const newSet = new Set(prev)
+        addresses.forEach((addr) => newSet.add(addr))
+        return newSet
+      })
+
+      setAllEVMAddresses(Array.from(addresses))
+    }
+
+    fetchAllEVMAddresses()
+
+    // 监听账户变化（某些钱包会触发 accountsChanged 事件）
+    if (connector && "provider" in connector && connector.provider) {
+      const provider = (connector as any).provider
+      if (provider && typeof provider.on === "function") {
+        const handleAccountsChanged = (accounts: string[]) => {
+          console.log("Accounts changed:", accounts)
+          // 更新已见过的账户集合
+          setSeenEVMAddresses((prev) => {
+            const newSet = new Set(prev)
+            if (accounts && Array.isArray(accounts)) {
+              accounts.forEach((addr: string) => {
+                if (addr && typeof addr === "string") {
+                  newSet.add(addr)
+                }
+              })
+            }
+            return newSet
+          })
+          fetchAllEVMAddresses()
+        }
+
+        provider.on("accountsChanged", handleAccountsChanged)
+
+        return () => {
+          if (provider && typeof provider.removeListener === "function") {
+            provider.removeListener("accountsChanged", handleAccountsChanged)
+          }
+        }
+      }
+    }
+  }, [isPaymentConnected, paymentAddress, connector, connections])
 
   const connectArweave = async () => {
     if (!window.arweaveWallet) {
@@ -105,9 +359,7 @@ export default function AccountPage() {
       // 如果当前使用的是外部账户，清除保存的状态
       if (!walletManager.activeAddress && walletManager.vaultId) {
         try {
-          await db.vault.delete(
-            `use_external_${walletManager.vaultId}`,
-          )
+          await db.vault.delete(`use_external_${walletManager.vaultId}`)
         } catch (e) {
           console.error("Failed to clear external account state:", e)
         }
@@ -150,7 +402,7 @@ export default function AccountPage() {
     const fetchBalances = async () => {
       const promises = walletManager.wallets.map(async (wallet) => {
         const key = `${wallet.chain}-${wallet.address}`
-        
+
         // 如果已经有余额数据，跳过
         if (balances[key] !== undefined) {
           return
@@ -247,17 +499,32 @@ export default function AccountPage() {
       alias: string
       isExternal: true
       provider?: string
+      connectionId?: string
     }> = []
 
-    // EVM 账户
-    if (isPaymentConnected && paymentAddress) {
-      externalAccounts.push({
-        id: `external-evm-${paymentAddress}`,
-        chain: "ethereum",
-        address: paymentAddress,
-        alias: "外部连接账户",
-        isExternal: true,
-        provider: "EVM",
+    // EVM 账户 - 获取所有连接的账户
+    if (
+      isPaymentConnected &&
+      allEVMAddresses &&
+      Array.isArray(allEVMAddresses) &&
+      allEVMAddresses.length > 0
+    ) {
+      // 为每个地址创建账户对象
+      allEVMAddresses.forEach((address) => {
+        if (address && typeof address === "string") {
+          const isActive =
+            address.toLowerCase() === paymentAddress?.toLowerCase()
+          externalAccounts.push({
+            id: `external-evm-${address}`,
+            chain: "ethereum",
+            address: address,
+            alias: isActive
+              ? "EVM 钱包 (当前)"
+              : `EVM 钱包 ${address.slice(0, 6)}...${address.slice(-4)}`,
+            isExternal: true,
+            provider: "EVM",
+          })
+        }
       })
     }
 
@@ -267,9 +534,33 @@ export default function AccountPage() {
         id: `external-arweave-${arAddress}`,
         chain: "arweave",
         address: arAddress,
-        alias: "外部连接账户",
+        alias: "ArConnect 钱包",
         isExternal: true,
         provider: "ArConnect",
+      })
+    }
+
+    // Solana 账户
+    if (isSolConnected && solAddress) {
+      externalAccounts.push({
+        id: `external-solana-${solAddress}`,
+        chain: "solana",
+        address: solAddress,
+        alias: "Phantom 钱包",
+        isExternal: true,
+        provider: "Phantom",
+      })
+    }
+
+    // Sui 账户
+    if (isSuiConnected && suiAddress) {
+      externalAccounts.push({
+        id: `external-sui-${suiAddress}`,
+        chain: "sui",
+        address: suiAddress,
+        alias: "Sui Wallet",
+        isExternal: true,
+        provider: "Sui Wallet",
       })
     }
 
@@ -293,7 +584,10 @@ export default function AccountPage() {
           const balance = await getBalance(account.chain, account.address)
           setBalances((prev) => ({ ...prev, [key]: balance }))
         } catch (error) {
-          console.error(`Failed to fetch balance for external ${account.address}:`, error)
+          console.error(
+            `Failed to fetch balance for external ${account.address}:`,
+            error,
+          )
           setBalances((prev) => ({
             ...prev,
             [key]: {
@@ -311,12 +605,21 @@ export default function AccountPage() {
 
     fetchExternalBalances()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPaymentConnected, paymentAddress, isArConnected, arAddress])
+  }, [
+    isPaymentConnected,
+    paymentAddress,
+    isArConnected,
+    arAddress,
+    isSolConnected,
+    solAddress,
+    isSuiConnected,
+    suiAddress,
+  ])
 
   const renderAccountList = (chain: string) => {
     // 本地账户
     const localAccounts = walletManager.wallets.filter((w) => w.chain === chain)
-    
+
     // 外部连接账户
     const externalAccounts = getExternalAccounts().filter(
       (acc) => acc.chain === chain,
@@ -336,75 +639,46 @@ export default function AccountPage() {
       })),
     ]
 
-    // 渲染连接外部账户按钮
-    const renderConnectButton = () => {
-      if (chain === "ethereum" && !isPaymentConnected) {
-      return (
-          <ConnectButton.Custom>
-            {({ openConnectModal }) => (
-              <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-indigo-300 hover:bg-indigo-50/30">
-                <Button
-                  onClick={openConnectModal}
-                  variant="ghost"
-                  className="h-auto w-full flex-col gap-2 p-0 text-slate-600 hover:text-indigo-600"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span className="text-xs font-semibold">连接 EVM 钱包</span>
-                </Button>
-        </div>
-            )}
-          </ConnectButton.Custom>
-      )
-    }
-      if (chain === "arweave" && !isArConnected) {
-    return (
-          <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-indigo-300 hover:bg-indigo-50/30">
-            <Button
-              onClick={connectArweave}
-              variant="ghost"
-              className="h-auto w-full flex-col gap-2 p-0 text-slate-600 hover:text-indigo-600"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="text-xs font-semibold">连接 ArConnect</span>
-            </Button>
-        </div>
-        )
-      }
-      return null
-    }
-
     if (allAccounts.length === 0) {
-      const connectBtn = renderConnectButton()
       return (
         <div className="space-y-3">
           <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-12 text-center">
-            <Wallet className="mx-auto h-8 w-8 text-slate-300 mb-3" />
+            <Wallet className="mx-auto mb-3 h-8 w-8 text-slate-300" />
             <p className="text-sm text-slate-400 italic">
-              {t("identities.emptyState", { chain })}
+          {t("identities.emptyState", { chain })}
             </p>
           </div>
-          {connectBtn}
         </div>
       )
     }
 
     return (
-      <div className="space-y-3">
+        <div className="space-y-3">
         {allAccounts.map((account) => {
           const key = account.isExternal
             ? `external-${account.chain}-${account.address}`
             : `${account.chain}-${account.address}`
           const balance = balances[key]
           const loading = loadingBalances[key]
-          // 判断是否激活：本地账户检查 activeAddress，外部账户检查是否有本地账户激活（如果没有本地账户激活，外部账户就是激活的）
+          // 判断是否激活：本地账户检查 activeAddress，外部账户检查当前激活的地址
           const isActive = account.isExternal
-            ? !walletManager.activeAddress // 外部账户激活：没有本地账户激活
+            ? !walletManager.activeAddress &&
+              (account.chain === "ethereum"
+                ? account.address.toLowerCase() ===
+                  paymentAddress?.toLowerCase()
+                : account.chain === "arweave"
+                  ? account.address === arAddress
+                  : account.chain === "solana"
+                    ? account.address === solAddress
+                    : account.chain === "sui"
+                      ? account.address === suiAddress
+                      : true) // 外部账户激活：没有本地账户激活，且地址匹配
             : walletManager.activeAddress === account.address // 本地账户激活：地址匹配
 
           return (
             <div
               key={account.id || (account as any).id}
-              className={`group relative overflow-hidden rounded-xl border transition-all cursor-pointer ${
+              className={`group relative cursor-pointer overflow-hidden rounded-xl border transition-all ${
                 isActive
                   ? "border-indigo-300 bg-gradient-to-br from-indigo-50 to-indigo-50/50 shadow-md"
                   : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
@@ -422,8 +696,22 @@ export default function AccountPage() {
                 // 切换账户
                 if (account.isExternal) {
                   if (!isActive) {
-                    walletManager.clearActiveWallet()
-                    toast.success("已切换到外部账户")
+                    // 对于 EVM 账户，如果点击的不是当前激活的账户，需要通过账户管理按钮切换
+                    // 这里我们会在按钮区域提供切换功能
+                    if (
+                      account.chain === "ethereum" &&
+                      account.address.toLowerCase() !==
+                        paymentAddress?.toLowerCase()
+                    ) {
+                      // 提示用户使用账户管理按钮
+                      toast.info("请使用账户管理按钮切换账户", {
+                        duration: 2000,
+                      })
+                    } else {
+                      // 对于其他外部账户或当前账户，直接清除本地账户激活状态
+                      walletManager.clearActiveWallet()
+                      toast.success("已切换到外部账户")
+                    }
                   }
                 } else {
                   if (!isActive) {
@@ -433,7 +721,7 @@ export default function AccountPage() {
               }}
             >
               {isActive && (
-                <div className="absolute left-0 top-0 h-full w-1 bg-indigo-600" />
+                <div className="absolute top-0 left-0 h-full w-1 bg-indigo-600" />
               )}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
@@ -446,9 +734,9 @@ export default function AccountPage() {
                       }`}
                     >
                       {getChainIcon(account.chain)}
-                    </div>
+                </div>
                     <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate font-bold text-slate-900">
                           {account.isExternal
                             ? account.alias
@@ -457,7 +745,7 @@ export default function AccountPage() {
                         {isActive && (
                           <span className="shrink-0 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
                             {t("identities.currentAccount")}
-                          </span>
+                    </span>
                         )}
                         {account.isExternal && !isActive && (
                           <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600">
@@ -467,7 +755,7 @@ export default function AccountPage() {
                       </div>
                       <div className="flex items-center gap-2 font-mono text-xs text-slate-500">
                         <span className="truncate">{account.address}</span>
-                        <button
+                    <button
                           onClick={(e) => {
                             e.stopPropagation()
                             copyAddress(account.address)
@@ -476,8 +764,8 @@ export default function AccountPage() {
                           title={t("common.copy")}
                         >
                           <Copy className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                    </button>
+                  </div>
                       <div className="flex items-center gap-2">
                         {loading ? (
                           <span className="text-xs text-slate-400 italic">
@@ -491,9 +779,9 @@ export default function AccountPage() {
                             <span className="text-xs font-medium text-slate-500 uppercase">
                               {balance.symbol}
                             </span>
-                          </div>
+                </div>
                         ) : null}
-                      </div>
+              </div>
                     </div>
                   </div>
                   <div
@@ -506,15 +794,86 @@ export default function AccountPage() {
                         {account.chain === "ethereum" && isPaymentConnected ? (
                           <ConnectButton.Custom>
                             {({ openAccountModal }) => (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={openAccountModal}
-                                className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
-                                title="管理账户"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
+                              <>
+                                {!isActive && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                                    onClick={async (e) => {
+                                      e.stopPropagation()
+
+                                      // 尝试通过钱包提供者请求账户切换
+                                      // 注意：大多数钱包（如 MetaMask）不支持程序化切换到特定账户
+                                      // 但我们可以触发账户选择界面
+                                      try {
+                                        if (
+                                          connector &&
+                                          "provider" in connector &&
+                                          connector.provider
+                                        ) {
+                                          const provider = (connector as any)
+                                            .provider
+
+                                          // 尝试请求账户访问，这会打开钱包的账户选择界面
+                                          try {
+                                            await provider.request({
+                                              method: "eth_requestAccounts",
+                                            })
+                                            // 给用户提示，让他们在钱包中选择账户
+                                            toast.info(
+                                              `请在钱包中选择账户 ${account.address.slice(0, 6)}...${account.address.slice(-4)}`,
+                                              { duration: 4000 },
+                                            )
+                                            // 清除本地账户激活状态，等待外部账户切换
+                                            walletManager.clearActiveWallet()
+                                            return
+                                          } catch (reqError) {
+                                            // 如果请求失败，继续打开账户管理模态框
+                                            console.debug(
+                                              "Account request failed:",
+                                              reqError,
+                                            )
+                                          }
+                                        }
+
+                                        // 打开账户管理模态框，让用户手动切换
+                                        openAccountModal()
+                                        toast.info(
+                                          "请在账户管理界面中选择要切换的账户",
+                                          {
+                                            duration: 3000,
+                                          },
+                                        )
+                                      } catch (error) {
+                                        console.error(
+                                          "Failed to switch account:",
+                                          error,
+                                        )
+                                        // 如果所有方法都失败，打开账户管理模态框
+                                        openAccountModal()
+                                        toast.error("切换失败，请手动切换账户")
+                                      }
+                                    }}
+                                    className="h-8 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                    title="切换账户"
+                  >
+                    <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+                                    切换
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openAccountModal()
+                                  }}
+                                  className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                                  title="管理账户"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
                           </ConnectButton.Custom>
                         ) : null}
@@ -524,20 +883,26 @@ export default function AccountPage() {
                           onClick={async () => {
                             if (account.chain === "ethereum") {
                               disconnectEVM()
-                              if (!walletManager.activeAddress && walletManager.vaultId) {
+                              if (
+                                !walletManager.activeAddress &&
+                                walletManager.vaultId
+                              ) {
                                 try {
                                   await db.vault.delete(
                                     `use_external_${walletManager.vaultId}`,
                                   )
                                 } catch (e) {
-                                  console.error("Failed to clear external account state:", e)
+                                  console.error(
+                                    "Failed to clear external account state:",
+                                    e,
+                                  )
                                 }
                               }
                             } else if (account.chain === "arweave") {
                               disconnectArweave()
                             }
                           }}
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          className="h-8 w-8 p-0 text-slate-400 hover:bg-red-50 hover:text-red-500"
                           title="断开连接"
                         >
                           <Unlink className="h-4 w-4" />
@@ -552,32 +917,30 @@ export default function AccountPage() {
                           onClick={() => handleShowSensitive(account, "key")}
                           className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
                           title={t("identities.viewSensitive")}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
                         {account.chain !== "arweave" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                             onClick={() =>
                               handleShowSensitive(account, "mnemonic")
                             }
                             className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
                             title={t("identities.mnemonic")}
-                          >
-                            <Lock className="h-4 w-4" />
-                          </Button>
+                  >
+                    <Lock className="h-4 w-4" />
+                  </Button>
                         )}
                       </>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
+            </div>
+        </div>
             </div>
           )
         })}
-        {/* 连接外部账户按钮 */}
-        {renderConnectButton()}
       </div>
     )
   }
@@ -600,7 +963,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 py-8 px-4 sm:px-6">
+    <div className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-bold tracking-tight">
@@ -643,14 +1006,14 @@ export default function AccountPage() {
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder={t("unlock.passwordPlaceholder")}
-                  className="h-12 rounded-xl border-slate-200 text-center text-lg focus:ring-indigo-500 pr-12"
+                  className="h-12 rounded-xl border-slate-200 pr-12 text-center text-lg focus:ring-indigo-500"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                  className="absolute top-1/2 right-4 -translate-y-1/2 text-slate-400 transition-colors hover:text-indigo-600"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -695,19 +1058,19 @@ export default function AccountPage() {
                   ),
                 )}
               </TabsList>
-              <TabsContent value="ethereum" className="px-4 pb-4 pt-4">
+                  <TabsContent value="ethereum" className="px-4 pt-4 pb-4">
                 {renderAccountList("ethereum")}
               </TabsContent>
-              <TabsContent value="bitcoin" className="px-4 pb-4 pt-4">
+                  <TabsContent value="bitcoin" className="px-4 pt-4 pb-4">
                 {renderAccountList("bitcoin")}
               </TabsContent>
-              <TabsContent value="solana" className="px-4 pb-4 pt-4">
+                  <TabsContent value="solana" className="px-4 pt-4 pb-4">
                 {renderAccountList("solana")}
               </TabsContent>
-              <TabsContent value="sui" className="px-4 pb-4 pt-4">
-                {renderAccountList("sui")}
-              </TabsContent>
-              <TabsContent value="arweave" className="px-4 pb-4 pt-4">
+                  <TabsContent value="sui" className="px-4 pt-4 pb-4">
+                    {renderAccountList("sui")}
+                  </TabsContent>
+                  <TabsContent value="arweave" className="px-4 pt-4 pb-4">
                 {renderAccountList("arweave")}
               </TabsContent>
             </Tabs>
@@ -723,7 +1086,7 @@ export default function AccountPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <Tabs defaultValue="import" className="w-full">
-                  <TabsList className="mx-4 mt-4 mb-0 h-auto w-auto rounded-lg bg-slate-100 p-1">
+                  <TabsList className="mx-4 mt-4 mb-0 h-auto w-auto flex-wrap rounded-lg bg-slate-100 p-1">
                     <TabsTrigger
                       value="import"
                       className="rounded-md px-4 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
@@ -735,6 +1098,12 @@ export default function AccountPage() {
                       className="rounded-md px-4 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
                     >
                       {t("identities.new")}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="connect"
+                      className="rounded-md px-4 py-2 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                    >
+                      连接外部
                     </TabsTrigger>
                   </TabsList>
 
@@ -749,7 +1118,9 @@ export default function AccountPage() {
                           <Input
                             placeholder={t("identities.aliasPlaceholder")}
                             value={newAccountAlias}
-                            onChange={(e) => setNewAccountAlias(e.target.value)}
+                              onChange={(e) =>
+                                setNewAccountAlias(e.target.value)
+                              }
                               className="rounded-lg"
                           />
                         </div>
@@ -762,13 +1133,15 @@ export default function AccountPage() {
                               type={showImportKey ? "text" : "password"}
                               placeholder={t("identities.keyPlaceholder")}
                               value={newAccountInput}
-                              onChange={(e) => setNewAccountInput(e.target.value)}
-                                className="pr-10 rounded-lg"
+                                onChange={(e) =>
+                                  setNewAccountInput(e.target.value)
+                                }
+                                className="rounded-lg pr-10"
                             />
                             <button
                               type="button"
                               onClick={() => setShowImportKey(!showImportKey)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                                className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition-colors hover:text-indigo-600"
                             >
                               {showImportKey ? (
                                 <EyeOff className="h-4 w-4" />
@@ -821,9 +1194,9 @@ export default function AccountPage() {
                           key={chain.id}
                           variant="outline"
                           onClick={() => handleCreateAccount(chain.id)}
-                            className="flex h-24 flex-col gap-2 rounded-lg border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition-all"
+                            className="flex h-24 flex-col gap-2 rounded-lg border-slate-200 transition-all hover:border-indigo-500 hover:bg-indigo-50/50"
                         >
-                            <div className="rounded-lg bg-slate-50 p-2 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                            <div className="rounded-lg bg-slate-50 p-2 text-slate-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-600">
                             {chain.icon}
                           </div>
                             <span className="text-xs font-semibold text-slate-700">
@@ -833,11 +1206,261 @@ export default function AccountPage() {
                       ))}
                     </div>
                   </TabsContent>
+
+                    <TabsContent value="connect" className="mt-0">
+            <div className="space-y-4">
+                        <p className="mb-4 text-xs text-slate-500">
+                          连接外部钱包账户，无需导入私钥即可使用
+                        </p>
+                        <div className="grid grid-cols-1 gap-3">
+                          {/* EVM 钱包连接 */}
+                          <ConnectButton.Custom>
+                            {({
+                              openConnectModal,
+                              openAccountModal,
+                              account,
+                            }) => {
+                              // 确保 openAccountModal 可用
+                              const handleSwitchAccount = () => {
+                                if (typeof openAccountModal === "function") {
+                                  openAccountModal()
+                                } else {
+                                  console.error(
+                                    "openAccountModal is not a function",
+                                    { openAccountModal, account },
+                                  )
+                                  toast.error("无法打开账户管理界面")
+                                }
+                              }
+
+                              return (
+                                <div className="space-y-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={
+                                      isPaymentConnected
+                                        ? handleSwitchAccount
+                                        : openConnectModal
+                                    }
+                                    className={`flex h-20 w-full items-center justify-start gap-3 rounded-lg transition-all ${
+                                      isPaymentConnected
+                                        ? "border-green-200 bg-green-50/50 hover:border-green-300 hover:bg-green-50"
+                                        : "border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`rounded-lg p-2 ${
+                                        isPaymentConnected
+                                          ? "bg-green-100 text-green-600"
+                                          : "bg-slate-50 text-slate-600"
+                                      }`}
+                                    >
+                                      <EthereumIcon className="h-5 w-5" />
                   </div>
-              </Tabs>
+                                    <div className="flex flex-1 flex-col items-start">
+                                      <span
+                                        className={`text-sm font-semibold ${
+                                          isPaymentConnected
+                                            ? "text-green-700"
+                                            : "text-slate-700"
+                                        }`}
+                                      >
+                                        {isPaymentConnected
+                                          ? `EVM 钱包 (${allEVMAddresses.length} 个账户)`
+                                          : "EVM 钱包"}
+                    </span>
+                                      <span
+                                        className={`text-xs ${
+                                          isPaymentConnected
+                                            ? "font-mono text-green-600"
+                                            : "text-slate-500"
+                                        }`}
+                                      >
+                                        {isPaymentConnected
+                                          ? `${paymentAddress?.slice(0, 10)}...${paymentAddress?.slice(-8)}`
+                                          : "MetaMask, WalletConnect 等"}
+                                      </span>
+                </div>
+                                    <ExternalLink
+                                      className={`h-4 w-4 ${
+                                        isPaymentConnected
+                                          ? "text-green-500"
+                                          : "text-slate-400"
+                                      }`}
+                                    />
+                                  </Button>
+                                </div>
+                              )
+                            }}
+                          </ConnectButton.Custom>
+
+                          {/* Arweave 钱包连接 */}
+                        <Button
+                          variant="outline"
+                            onClick={connectArweave}
+                            className={`flex h-20 w-full items-center justify-start gap-3 rounded-lg transition-all ${
+                              isArConnected
+                                ? "border-green-200 bg-green-50/50 hover:border-green-300 hover:bg-green-50"
+                                : "border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50"
+                            }`}
+                          >
+                            <div
+                              className={`rounded-lg p-2 ${
+                                isArConnected
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-slate-50 text-slate-600"
+                              }`}
+                            >
+                              <ArweaveIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-1 flex-col items-start">
+                              <span
+                                className={`text-sm font-semibold ${
+                                  isArConnected
+                                    ? "text-green-700"
+                                    : "text-slate-700"
+                                }`}
+                              >
+                                {isArConnected
+                                  ? "ArConnect 钱包 (已连接)"
+                                  : "ArConnect 钱包"}
+                            </span>
+                              <span
+                                className={`text-xs ${
+                                  isArConnected
+                                    ? "font-mono text-green-600"
+                                    : "text-slate-500"
+                                }`}
+                              >
+                                {isArConnected
+                                  ? `${arAddress?.slice(0, 10)}...${arAddress?.slice(-8)}`
+                                  : "Arweave 生态钱包"}
+                              </span>
+                            </div>
+                            <ExternalLink
+                              className={`h-4 w-4 ${
+                                isArConnected
+                                  ? "text-green-500"
+                                  : "text-slate-400"
+                              }`}
+                            />
+                            </Button>
+
+                          {/* Solana 钱包连接 */}
+                            <Button
+                            variant="outline"
+                            onClick={
+                              isSolConnected ? disconnectSolana : connectSolana
+                            }
+                            className={`flex h-20 w-full items-center justify-start gap-3 rounded-lg transition-all ${
+                              isSolConnected
+                                ? "border-green-200 bg-green-50/50 hover:border-green-300 hover:bg-green-50"
+                                : "border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50"
+                            }`}
+                          >
+                            <div
+                              className={`rounded-lg p-2 ${
+                                isSolConnected
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-slate-50 text-slate-600"
+                              }`}
+                            >
+                              <SolanaIcon className="h-5 w-5" />
+                          </div>
+                            <div className="flex flex-1 flex-col items-start">
+                              <span
+                                className={`text-sm font-semibold ${
+                                  isSolConnected
+                                    ? "text-green-700"
+                                    : "text-slate-700"
+                                }`}
+                              >
+                                {isSolConnected
+                                  ? "Phantom 钱包 (已连接)"
+                                  : "Phantom 钱包"}
+                    </span>
+                              <span
+                                className={`text-xs ${
+                                  isSolConnected
+                                    ? "font-mono text-green-600"
+                                    : "text-slate-500"
+                                }`}
+                              >
+                                {isSolConnected
+                                  ? `${solAddress?.slice(0, 10)}...${solAddress?.slice(-8)}`
+                                  : "Solana 生态钱包"}
+                    </span>
+                </div>
+                            <ExternalLink
+                              className={`h-4 w-4 ${
+                                isSolConnected
+                                  ? "text-green-500"
+                                  : "text-slate-400"
+                              }`}
+                            />
+                          </Button>
+
+                          {/* Sui 钱包连接 */}
+                    <Button
+                      variant="outline"
+                            onClick={
+                              isSuiConnected ? disconnectSui : connectSui
+                            }
+                            className={`flex h-20 w-full items-center justify-start gap-3 rounded-lg transition-all ${
+                              isSuiConnected
+                                ? "border-green-200 bg-green-50/50 hover:border-green-300 hover:bg-green-50"
+                                : "border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50"
+                            }`}
+                          >
+                            <div
+                              className={`rounded-lg p-2 ${
+                                isSuiConnected
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-slate-50 text-slate-600"
+                              }`}
+                            >
+                              <SuiIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-1 flex-col items-start">
+                              <span
+                                className={`text-sm font-semibold ${
+                                  isSuiConnected
+                                    ? "text-green-700"
+                                    : "text-slate-700"
+                                }`}
+                              >
+                                {isSuiConnected
+                                  ? "Sui Wallet (已连接)"
+                                  : "Sui Wallet"}
+                              </span>
+                              <span
+                                className={`text-xs ${
+                                  isSuiConnected
+                                    ? "font-mono text-green-600"
+                                    : "text-slate-500"
+                                }`}
+                              >
+                                {isSuiConnected
+                                  ? `${suiAddress?.slice(0, 10)}...${suiAddress?.slice(-8)}`
+                                  : "Sui 生态钱包"}
+                              </span>
+                            </div>
+                            <ExternalLink
+                              className={`h-4 w-4 ${
+                                isSuiConnected
+                                  ? "text-green-500"
+                                  : "text-slate-400"
+                              }`}
+                            />
+                          </Button>
+                        </div>
+                </div>
+                    </TabsContent>
+              </div>
+                </Tabs>
               </CardContent>
             </Card>
-          </div>
+            </div>
 
           <div className="space-y-6">
             <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
@@ -908,7 +1531,7 @@ export default function AccountPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition-colors hover:text-indigo-600"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />

@@ -93,7 +93,7 @@ export function Navbar() {
                   <div className="relative">
                     <Icon className="h-4 w-4" />
                     {isAccount && walletManager.isUnlocked && (
-                      <span className="absolute -right-1 -top-1 flex h-2 w-2">
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600"></span>
                       </span>
@@ -130,7 +130,7 @@ export function Navbar() {
                   return (
                     <Link
                       to="/account"
-                      className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 transition-all hover:bg-slate-50 active:scale-95 shadow-sm"
+                      className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 shadow-sm transition-all hover:bg-slate-50 active:scale-95"
                     >
                       <div className="flex h-3.5 w-3.5 items-center justify-center">
                         {getChainIcon(activeAccount.chain)}
@@ -170,7 +170,7 @@ export function Navbar() {
                   return (
                     <Link
                       to="/account"
-                      className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 transition-all hover:bg-slate-50 active:scale-95 shadow-sm"
+                      className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 shadow-sm transition-all hover:bg-slate-50 active:scale-95"
                     >
                       <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
                       {chain.hasIcon && chain.iconUrl && (
@@ -217,7 +217,7 @@ export function Navbar() {
                 return (
                   <Link
                     to="/account"
-                    className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 transition-all hover:bg-slate-50 active:scale-95 shadow-sm"
+                    className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 shadow-sm transition-all hover:bg-slate-50 active:scale-95"
                   >
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
                     {chain.hasIcon && chain.iconUrl && (

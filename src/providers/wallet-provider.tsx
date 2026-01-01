@@ -78,7 +78,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [activeAddress, setActiveAddress] = useState<string | null>(null)
   const [activeWallet, setActiveWallet] = useState<any | null>(null)
   const [useExternal, setUseExternal] = useState<boolean>(false)
-  const [hasSavedLocalAccount, setHasSavedLocalAccount] = useState<boolean>(false)
+  const [hasSavedLocalAccount, setHasSavedLocalAccount] =
+    useState<boolean>(false)
 
   const getVaultId = async (key: Uint8Array) => {
     const hashBuffer = await window.crypto.subtle.digest("SHA-256", key as any)
