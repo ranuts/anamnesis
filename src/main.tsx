@@ -6,7 +6,9 @@ import { Providers } from "./providers"
 import { Buffer } from "buffer"
 import "./i18n/config"
 
-window.Buffer = window.Buffer || Buffer
+if (typeof window !== "undefined") {
+  window.Buffer = window.Buffer || Buffer
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
