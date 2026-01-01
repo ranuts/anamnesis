@@ -47,6 +47,7 @@ interface WalletContextType {
   activeWallet: any | null // 解密后的活跃账户对象
   vaultId: string | null
   masterKey: Uint8Array | null
+  hasSavedLocalAccount: boolean // 是否有保存的本地账户状态（即使未解锁）
   unlock: (password: string) => Promise<boolean>
   logout: () => void
   addWallet: (input: any, alias: string) => Promise<void>
@@ -66,6 +67,9 @@ const VAULT_SALT = new Uint8Array([
   0x6c, 0x74, 0x31,
 ])
 
+const STORAGE_KEY_ACTIVE_ADDRESS = "active_address"
+const STORAGE_KEY_USE_EXTERNAL = "use_external"
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const [wallets, setWallets] = useState<WalletRecord[]>([])
@@ -73,6 +77,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [vaultId, setVaultId] = useState<string | null>(null)
   const [activeAddress, setActiveAddress] = useState<string | null>(null)
   const [activeWallet, setActiveWallet] = useState<any | null>(null)
+  const [useExternal, setUseExternal] = useState<boolean>(false)
+  const [hasSavedLocalAccount, setHasSavedLocalAccount] = useState<boolean>(false)
 
   const getVaultId = async (key: Uint8Array) => {
     const hashBuffer = await window.crypto.subtle.digest("SHA-256", key as any)
@@ -98,6 +104,95 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     loadWallets()
   }, [loadWallets])
 
+  // 恢复保存的账户状态
+  useEffect(() => {
+    if (vaultId) {
+      const loadAccountState = async () => {
+        try {
+          const activeAddressRecord = await db.vault.get(
+            `${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`,
+          )
+          const useExternalRecord = await db.vault.get(
+            `${STORAGE_KEY_USE_EXTERNAL}_${vaultId}`,
+          )
+
+          const savedAddress = activeAddressRecord?.value
+          const savedUseExternal = useExternalRecord?.value === "true"
+
+          if (savedUseExternal) {
+            // 如果之前使用的是外部账户，清除本地账户激活状态
+            setActiveAddress(null)
+            setActiveWallet(null)
+            setUseExternal(true)
+            setHasSavedLocalAccount(false)
+          } else if (savedAddress) {
+            // 有保存的本地账户状态
+            setUseExternal(false)
+            setHasSavedLocalAccount(true)
+            // 注意：这里不直接设置 activeAddress，因为需要解密钱包
+            // 会在 loadWallets 后通过恢复逻辑处理
+          } else {
+            setHasSavedLocalAccount(false)
+          }
+        } catch (e) {
+          console.error("Failed to load account state:", e)
+          setHasSavedLocalAccount(false)
+        }
+      }
+      loadAccountState()
+    } else {
+      setHasSavedLocalAccount(false)
+    }
+  }, [vaultId])
+
+  // 当 wallets 加载完成后，恢复之前激活的账户
+  useEffect(() => {
+    if (vaultId && wallets.length > 0 && !useExternal && masterKey) {
+      const restoreWallet = async () => {
+        try {
+          const activeAddressRecord = await db.vault.get(
+            `${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`,
+          )
+          const savedAddress = activeAddressRecord?.value
+
+          if (savedAddress) {
+            const wallet = wallets.find((w) => w.address === savedAddress)
+            if (wallet) {
+              // 静默恢复账户（不显示 toast）
+              const { ciphertext, nonce } = JSON.parse(wallet.encryptedKey)
+              const decrypted = await decryptData(
+                fromBase64(ciphertext),
+                fromBase64(nonce),
+                masterKey,
+              )
+              const data: DecryptedData = JSON.parse(fromBytes(decrypted))
+
+              setActiveAddress(savedAddress)
+              setActiveWallet(
+                wallet.chain === "arweave" ? JSON.parse(data.key) : data.key,
+              )
+            } else {
+              // 如果钱包不存在，清除保存的状态
+              await db.vault.delete(`${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`)
+              await db.vault.delete(`${STORAGE_KEY_USE_EXTERNAL}_${vaultId}`)
+            }
+          }
+        } catch (e) {
+          console.error("Failed to restore wallet:", e)
+          // 如果恢复失败，清除保存的状态
+          try {
+            await db.vault.delete(`${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`)
+            await db.vault.delete(`${STORAGE_KEY_USE_EXTERNAL}_${vaultId}`)
+          } catch (deleteError) {
+            console.error("Failed to clear account state:", deleteError)
+          }
+        }
+      }
+      restoreWallet()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vaultId, wallets, masterKey, useExternal])
+
   const unlock = useCallback(
     async (password: string) => {
       try {
@@ -115,13 +210,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [t],
   )
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // 清除保存的状态
+    if (vaultId) {
+      try {
+        await db.vault.delete(`${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`)
+        await db.vault.delete(`${STORAGE_KEY_USE_EXTERNAL}_${vaultId}`)
+      } catch (e) {
+        console.error("Failed to clear account state:", e)
+      }
+    }
     setMasterKey(null)
     setVaultId(null)
     setActiveAddress(null)
     setActiveWallet(null)
+    setUseExternal(false)
+    setHasSavedLocalAccount(false)
     setWallets([])
-  }, [])
+  }, [vaultId])
 
   const detectChainAndAddress = async (input: string | any) => {
     // 1. Arweave JWK
@@ -314,7 +420,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const selectWallet = useCallback(
     async (address: string) => {
       const walletRecord = wallets.find((w) => w.address === address)
-      if (!walletRecord || !masterKey) return
+      if (!walletRecord || !masterKey || !vaultId) return
 
       try {
         const { ciphertext, nonce } = JSON.parse(walletRecord.encryptedKey)
@@ -329,6 +435,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setActiveWallet(
           walletRecord.chain === "arweave" ? JSON.parse(data.key) : data.key,
         )
+        setUseExternal(false)
+        setHasSavedLocalAccount(true)
+
+        // 保存到 IndexedDB
+        await db.vault.put({
+          key: `${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`,
+          value: address,
+        })
+        await db.vault.put({
+          key: `${STORAGE_KEY_USE_EXTERNAL}_${vaultId}`,
+          value: "false",
+        })
+
         toast.success(
           t("identities.successActive", { alias: walletRecord.alias }),
         )
@@ -337,13 +456,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         toast.error("Failed to activate wallet")
       }
     },
-    [wallets, masterKey, t],
+    [wallets, masterKey, vaultId, t],
   )
 
-  const clearActiveWallet = useCallback(() => {
+  const clearActiveWallet = useCallback(async () => {
     setActiveAddress(null)
     setActiveWallet(null)
-  }, [])
+    setUseExternal(true)
+    setHasSavedLocalAccount(false)
+
+    // 保存外部账户状态到 IndexedDB
+    if (vaultId) {
+      try {
+        await db.vault.delete(`${STORAGE_KEY_ACTIVE_ADDRESS}_${vaultId}`)
+        await db.vault.put({
+          key: `${STORAGE_KEY_USE_EXTERNAL}_${vaultId}`,
+          value: "true",
+        })
+      } catch (e) {
+        console.error("Failed to save external account state:", e)
+      }
+    }
+  }, [vaultId])
 
   const getDecryptedInfo = useCallback(
     async (wallet: WalletRecord, passwordConfirm: string) => {
@@ -380,6 +514,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         activeWallet,
         vaultId,
         masterKey,
+        hasSavedLocalAccount,
         unlock,
         logout,
         addWallet,

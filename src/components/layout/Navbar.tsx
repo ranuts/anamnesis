@@ -142,7 +142,30 @@ export function Navbar() {
                   )
                 }
 
-                // 如果没有本地账户激活，但外部账户已连接，显示外部账户
+                // 如果未解锁，不显示外部账户（避免混淆，等待用户解锁后再显示正确的账户）
+                if (!walletManager.isUnlocked) {
+                  return (
+                    <div
+                      {...(!ready && {
+                        "aria-hidden": true,
+                        style: {
+                          opacity: 0,
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        },
+                      })}
+                    >
+                      <button
+                        onClick={openConnectModal}
+                        className="flex items-center gap-2 rounded-full border border-dashed border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-500 active:scale-95"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )
+                }
+
+                // 如果已解锁但没有本地账户激活，但外部账户已连接，显示外部账户
                 if (!hasLocalAccount && connected) {
                   return (
                     <Link
