@@ -26,7 +26,6 @@ export default defineConfig(({ isSsrBuild }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
-      workmode: "generateSW",
       workbox: {
         // 增加 PWA 允许缓存的最大文件大小到 20MB (应对某些无法进一步拆分的 Web3 库)
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
