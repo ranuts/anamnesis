@@ -44,7 +44,7 @@ interface WalletContextType {
   wallets: WalletRecord[]
   isUnlocked: boolean
   activeAddress: string | null
-  activeWallet: any | null // 解密后的活跃钱包对象
+  activeWallet: any | null // 解密后的活跃账户对象
   vaultId: string | null
   masterKey: Uint8Array | null
   unlock: (password: string) => Promise<boolean>

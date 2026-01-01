@@ -107,9 +107,9 @@ export function Navbar() {
           <LanguageSwitcher />
           <div className="mx-1 h-8 w-px bg-slate-200" />
 
-          {/* 统一钱包状态展示 */}
+          {/* 统一账户状态展示 */}
           <div className="flex items-center gap-2">
-            {/* 当前使用账户 (Identity) - 如果存在则优先展示 */}
+            {/* 当前使用账户 (Account) - 如果存在则优先展示 */}
             {walletManager.isUnlocked && walletManager.activeAddress && (
               <Link
                 to="/account"
@@ -135,7 +135,7 @@ export function Navbar() {
               }) => {
                 const ready = mounted
                 const connected = ready && account && chain
-                const hasActivePersona =
+                const hasActiveAccount =
                   walletManager.isUnlocked && walletManager.activeAddress
 
                 return (
@@ -153,15 +153,15 @@ export function Navbar() {
                       <button
                         onClick={openConnectModal}
                         className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-all active:scale-95 ${
-                          hasActivePersona
+                          hasActiveAccount
                             ? "border border-dashed border-slate-300 text-slate-400 hover:border-indigo-300 hover:text-indigo-500"
                             : "bg-slate-900 text-white hover:bg-slate-800"
                         }`}
                       >
                         <CreditCard className="h-3.5 w-3.5" />
-                        {!hasActivePersona && (
+                        {!hasActiveAccount && (
                           <span className="hidden sm:inline">
-                            {t("upload.irysConnectWallet")}
+                            {t("upload.irysConnectAccount")}
                           </span>
                         )}
                       </button>
@@ -169,17 +169,17 @@ export function Navbar() {
                       <button
                         onClick={openAccountModal}
                         className={`flex h-8 items-center gap-2 rounded-full border px-2.5 transition-all active:scale-95 shadow-sm ${
-                          hasActivePersona
+                          hasActiveAccount
                             ? "border-slate-100 bg-slate-50 text-slate-400"
                             : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                         }`}
                       >
                         <div
                           className={`h-1.5 w-1.5 rounded-full ${
-                            hasActivePersona ? "bg-slate-300" : "bg-green-500"
+                            hasActiveAccount ? "bg-slate-300" : "bg-green-500"
                           }`}
                         />
-                        {!hasActivePersona && (
+                        {!hasActiveAccount && (
                           <>
                             {chain.hasIcon && chain.iconUrl && (
                               <img

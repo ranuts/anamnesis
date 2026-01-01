@@ -8,16 +8,16 @@
 
 **Product Name:** Anamnesis  
 **Core Concept:** A pure, user-sovereignty-first Web3 permanent storage vault. The name originates from Plato's "Theory of Reminiscence," implying this tool helps users' digital souls retrieve and permanently guard memories and data that should be eternal.  
-**Product Positioning:** A pure frontend application that acts as a secure "Identity & Data Vault." It allows users to manage multi-chain identities and choose between **permanently burning** files on the Arweave blockchain or **privately sealing** them on the Irys storage network.
+**Product Positioning:** A pure frontend application that acts as a secure "Account & Data Vault." It allows users to manage multi-chain accounts and choose between **permanently burning** files on the Arweave blockchain or **privately sealing** them on the Irys storage network.
 
 ## **2. Core Features**
 
-### **2.1 Multi-Chain Identity Management**
+### **2.1 Multi-Chain Account Management**
 
-- **Broad Support**: Manage identities for **Ethereum, Bitcoin (Taproot), Solana, Sui, and Arweave**.
-- **Secure Vault**: All identities are encrypted locally with a **Master Password** using PBKDF2 for key derivation and XChaCha20-Poly1305 for encryption.
+- **Broad Support**: Manage accounts for **Ethereum, Bitcoin (Taproot), Solana, Sui, and Arweave**.
+- **Secure Vault**: All accounts are encrypted locally with a **Master Password** using PBKDF2 for key derivation and XChaCha20-Poly1305 for encryption.
 - **Automatic Detection**: Import private keys, seed phrases, or Arweave JWKs; the system automatically identifies the chain.
-- **BIP39 Support**: Generate new wallets with standard 12-word mnemonics for supported chains.
+- **BIP39 Support**: Generate new accounts with standard 12-word mnemonics for supported chains.
 
 ### **2.2 Privacy-First Storage**
 

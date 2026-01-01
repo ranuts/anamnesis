@@ -55,7 +55,7 @@ export default function AccountPage() {
     useAccount()
   const { disconnect: disconnectEVM } = useDisconnect()
 
-  // Arweave 外部钱包状态
+  // Arweave 外部账户状态
   const [arAddress, setArAddress] = useState<string | null>(null)
   const [isArConnected, setIsArConnected] = useState(false)
 
@@ -108,13 +108,13 @@ export default function AccountPage() {
 
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [newWalletInput, setNewWalletInput] = useState("")
+  const [newAccountInput, setNewAccountInput] = useState("")
   const [showImportKey, setShowImportKey] = useState(false)
-  const [newWalletAlias, setNewWalletAlias] = useState("")
+  const [newAccountAlias, setNewAccountAlias] = useState("")
 
   // 查看隐私相关
   const [showSensitiveDialog, setShowSensitiveDialog] = useState(false)
-  const [sensitiveWallet, setSensitiveWallet] = useState<any>(null)
+  const [sensitiveAccount, setSensitiveAccount] = useState<any>(null)
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [decryptedInfo, setDecryptedInfo] = useState<{
@@ -129,18 +129,18 @@ export default function AccountPage() {
     if (success) setPassword("")
   }
 
-  const handleAddWallet = async (e: React.FormEvent) => {
+  const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newWalletInput || !newWalletAlias) {
+    if (!newAccountInput || !newAccountAlias) {
       toast.error(t("identities.keyPlaceholder"))
       return
     }
-    await walletManager.addWallet(newWalletInput, newWalletAlias)
-    setNewWalletInput("")
-    setNewWalletAlias("")
+    await walletManager.addWallet(newAccountInput, newAccountAlias)
+    setNewAccountInput("")
+    setNewAccountAlias("")
   }
 
-  const handleCreateWallet = async (chain: any) => {
+  const handleCreateAccount = async (chain: any) => {
     const alias = prompt(
       t("identities.aliasPrompt"),
       `${chain.toUpperCase()}-Account`,
@@ -158,8 +158,8 @@ export default function AccountPage() {
     )
   }
 
-  const handleShowSensitive = (wallet: any, type: "key" | "mnemonic") => {
-    setSensitiveWallet(wallet)
+  const handleShowSensitive = (account: any, type: "key" | "mnemonic") => {
+    setSensitiveAccount(account)
     setConfirmPassword("")
     setDecryptedInfo(null)
     setViewType(type)
@@ -169,7 +169,7 @@ export default function AccountPage() {
   const verifyAndShow = async () => {
     try {
       const info = await walletManager.getDecryptedInfo(
-        sensitiveWallet,
+        sensitiveAccount,
         confirmPassword,
       )
       setDecryptedInfo(info)
@@ -178,7 +178,7 @@ export default function AccountPage() {
     }
   }
 
-  const renderWalletList = (chain: string) => {
+  const renderAccountList = (chain: string) => {
     const filtered = walletManager.wallets.filter((w) => w.chain === chain)
     if (filtered.length === 0) {
       return (
@@ -194,7 +194,7 @@ export default function AccountPage() {
             {t("identities.title")}
           </h4>
           <span className="text-[10px] font-medium text-slate-400">
-            {filtered.length} {t("common.account")}
+            {filtered.length} {t("identities.accountLabel")}
           </span>
         </div>
         <div className="space-y-3">
@@ -222,11 +222,6 @@ export default function AccountPage() {
                     <div className="truncate font-bold text-slate-900">
                       {w.alias}
                     </div>
-                    {walletManager.activeAddress === w.address && (
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600 uppercase">
-                        {t("common.activeIdentityLabel")}
-                      </span>
-                    )}
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 font-mono text-xs text-slate-500">
                     <span className="max-w-[150px] truncate sm:max-w-none">
@@ -380,7 +375,7 @@ export default function AccountPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">
-                    {t("identities.currentPersona")}
+                    {t("identities.currentAccount")}
                   </div>
                   {activeAccount ? (
                     <div className="mt-1">
@@ -404,7 +399,7 @@ export default function AccountPage() {
                     </div>
                   ) : (
                     <div className="mt-1 text-lg font-medium text-slate-400 italic">
-                      {t("identities.noActivePersona")}
+                      {t("identities.noActiveAccount")}
                     </div>
                   )}
                 </div>
@@ -426,17 +421,17 @@ export default function AccountPage() {
                 )}
               </TabsList>
               <TabsContent value="ethereum">
-                {renderWalletList("ethereum")}
+                {renderAccountList("ethereum")}
               </TabsContent>
               <TabsContent value="bitcoin">
-                {renderWalletList("bitcoin")}
+                {renderAccountList("bitcoin")}
               </TabsContent>
               <TabsContent value="solana">
-                {renderWalletList("solana")}
+                {renderAccountList("solana")}
               </TabsContent>
-              <TabsContent value="sui">{renderWalletList("sui")}</TabsContent>
+              <TabsContent value="sui">{renderAccountList("sui")}</TabsContent>
               <TabsContent value="arweave">
-                {renderWalletList("arweave")}
+                {renderAccountList("arweave")}
               </TabsContent>
             </Tabs>
 
@@ -458,7 +453,7 @@ export default function AccountPage() {
 
                 <CardContent className="p-6">
                   <TabsContent value="import" className="mt-0">
-                    <form onSubmit={handleAddWallet} className="space-y-4">
+                    <form onSubmit={handleAddAccount} className="space-y-4">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-slate-700">
@@ -466,8 +461,8 @@ export default function AccountPage() {
                           </label>
                           <Input
                             placeholder={t("identities.aliasPlaceholder")}
-                            value={newWalletAlias}
-                            onChange={(e) => setNewWalletAlias(e.target.value)}
+                            value={newAccountAlias}
+                            onChange={(e) => setNewAccountAlias(e.target.value)}
                           />
                         </div>
                         <div className="space-y-2">
@@ -478,8 +473,8 @@ export default function AccountPage() {
                             <Input
                               type={showImportKey ? "text" : "password"}
                               placeholder={t("identities.keyPlaceholder")}
-                              value={newWalletInput}
-                              onChange={(e) => setNewWalletInput(e.target.value)}
+                              value={newAccountInput}
+                              onChange={(e) => setNewAccountInput(e.target.value)}
                               className="pr-10"
                             />
                             <button
@@ -537,7 +532,7 @@ export default function AccountPage() {
                         <Button
                           key={chain.id}
                           variant="outline"
-                          onClick={() => handleCreateWallet(chain.id)}
+                          onClick={() => handleCreateAccount(chain.id)}
                           className="flex h-20 flex-col gap-2 rounded-xl border-slate-100 hover:border-indigo-600 hover:bg-indigo-50/30"
                         >
                           <div className="rounded-lg bg-slate-50 p-2 text-slate-600 group-hover:text-indigo-600">
@@ -758,7 +753,7 @@ export default function AccountPage() {
                     ? "identities.viewSensitiveDesc"
                     : "identities.mnemonicDesc"
                 }
-                values={{ alias: sensitiveWallet?.alias }}
+                values={{ alias: sensitiveAccount?.alias }}
                 components={{ strong: <strong /> }}
               />
             </DialogDescription>

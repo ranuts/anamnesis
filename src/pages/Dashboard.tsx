@@ -36,14 +36,14 @@ export default function DashboardPage() {
 
         <div className="hidden rounded-lg border border-slate-100 bg-white px-4 py-2 text-right shadow-xs sm:block">
           <div className="mb-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            {t("common.activeIdentity")}
+            {t("common.activeAccountLabel")}
           </div>
           <div className="max-w-[180px] truncate text-sm font-bold text-slate-900">
             {walletManager.activeAddress
               ? walletManager.wallets.find(
                   (w) => w.address === walletManager.activeAddress,
                 )?.alias || "Unnamed"
-              : t("common.noIdentity")}
+              : t("common.noAccount")}
           </div>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function DashboardPage() {
                   className="border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700"
                 >
                   <Lock className="mr-2 h-3 w-3" />
-                  {t("common.identityLocked")}
+                  {t("common.accountLocked")}
                 </Button>
               </Link>
             )}

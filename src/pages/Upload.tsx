@@ -92,7 +92,7 @@ export default function UploadPage() {
       return
     }
     if (!file || !walletManager.activeWallet) {
-      toast.error(t("upload.arweaveSelectIdentity"))
+      toast.error(t("upload.arweaveSelectAccount"))
       return
     }
 
@@ -120,7 +120,7 @@ export default function UploadPage() {
       return
     }
     if (!file || !walletClient) {
-      toast.error(t("upload.irysConnectWallet"))
+      toast.error(t("upload.irysConnectAccount"))
       return
     }
 
@@ -234,7 +234,7 @@ export default function UploadPage() {
 
               {!isConnected ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-center text-sm font-medium text-amber-800 shadow-xs">
-                  {t("upload.irysConnectWallet")}
+                  {t("upload.irysConnectAccount")}
                 </div>
               ) : (
                 <Button
@@ -329,8 +329,8 @@ export default function UploadPage() {
                 <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
                   <div className="text-sm font-bold text-slate-600">
                     {walletManager.wallets.length === 0
-                      ? t("upload.arweaveNoIdentity")
-                      : t("upload.arweaveSelectIdentity")}
+                      ? t("upload.arweaveNoAccount")
+                      : t("upload.arweaveSelectAccount")}
                   </div>
 
                   {walletManager.wallets.filter((w) => w.chain === "arweave")
