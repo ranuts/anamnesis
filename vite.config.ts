@@ -66,12 +66,20 @@ export default defineConfig(({ isSsrBuild }) => ({
       workbox: {
         // 增加 PWA 允许缓存的最大文件大小到 20MB (应对某些无法进一步拆分的 Web3 库)
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
+        // Avoid stale/mismatched chunk graphs after deploys.
+        // This is especially important when hosting under a subpath (/anamnesis/)
+        // and when chunk hashes change frequently.
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
       },
       manifest: {
         name: "Anamnesis - Web3 Vault",
         short_name: "Anamnesis",
         description: "A pure Web3 permanent storage vault",
         theme_color: "#4f46e5",
+        start_url: "/anamnesis/",
+        scope: "/anamnesis/",
         icons: [
           {
             src: "pwa-192x192.png",
