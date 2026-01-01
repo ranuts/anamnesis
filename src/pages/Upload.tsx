@@ -145,18 +145,20 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 py-8">
-      <div className="mb-4 flex flex-col gap-2">
-        <h2 className="text-3xl font-bold tracking-tight">
+    <div className="mx-auto max-w-3xl space-y-6 py-4 sm:space-y-8 sm:py-8">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
           {t("common.upload")}
         </h2>
-        <p className="text-slate-500">{t("upload.irysDesc")}</p>
+        <p className="text-sm text-slate-500 sm:text-base">
+          {t("upload.irysDesc")}
+        </p>
       </div>
 
       {!walletManager.isUnlocked && (
-        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
-          <Lock className="h-4 w-4 shrink-0 text-amber-500" />
-          <p className="font-medium">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <p className="leading-relaxed font-medium">
             {t("common.unlockRequired")}{" "}
             <Link to="/account" className="ml-1 font-bold underline">
               {t("upload.goToAccount")}
@@ -166,40 +168,46 @@ export default function UploadPage() {
       )}
 
       <Tabs defaultValue="irys" className="w-full">
-        <TabsList className="mb-6 grid h-14 w-full grid-cols-2 rounded-xl bg-slate-100 p-1">
+        <TabsList className="mb-6 grid h-12 w-full grid-cols-2 rounded-xl bg-slate-100 p-1 sm:h-14">
           <TabsTrigger
             value="irys"
-            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="flex items-center justify-center gap-2 rounded-lg text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm"
           >
-            <IrysIcon className="h-4 w-4" /> Irys Network
+            <IrysIcon className="h-4 w-4" />{" "}
+            <span className="truncate">Irys Network</span>
           </TabsTrigger>
           <TabsTrigger
             value="arweave"
-            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="flex items-center justify-center gap-2 rounded-lg text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm"
           >
-            <ArweaveIcon className="h-4 w-4" /> Arweave Native
+            <ArweaveIcon className="h-4 w-4" />{" "}
+            <span className="truncate">Arweave Native</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="irys" className="focus-visible:outline-hidden">
           <Card className="border-slate-200/60 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl">{t("upload.irysTitle")}</CardTitle>
-              <CardDescription>{t("upload.irysDesc")}</CardDescription>
+            <CardHeader className="sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">
+                {t("upload.irysTitle")}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {t("upload.irysDesc")}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid w-full items-center gap-1.5">
+              <div className="grid w-full items-center gap-2 sm:gap-1.5">
                 <Label
                   htmlFor="file-irys"
                   className="text-sm font-bold text-slate-700"
                 >
                   {t("upload.chooseFile")}
                 </Label>
-                <div className="mt-1.5">
+                <div className="mt-0.5">
                   <Input
                     id="file-irys"
                     type="file"
-                    className="h-11 cursor-pointer border-slate-200"
+                    className="h-12 cursor-pointer border-slate-200 bg-slate-50/50 sm:h-11"
                     onChange={(e) =>
                       e.target.files && setFile(e.target.files[0])
                     }
@@ -207,7 +215,7 @@ export default function UploadPage() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="flex items-center space-x-3 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
                 <input
                   type="checkbox"
                   id="encrypt-irys"
@@ -219,7 +227,7 @@ export default function UploadPage() {
                     }
                     setEncryptUpload(e.target.checked)
                   }}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 sm:h-4 sm:w-4"
                 />
                 <Label
                   htmlFor="encrypt-irys"
@@ -233,12 +241,12 @@ export default function UploadPage() {
               </div>
 
               {!isConnected ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-center text-sm font-medium text-amber-800 shadow-xs">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-center text-sm font-medium text-amber-800 shadow-xs">
                   {t("upload.irysConnectAccount")}
                 </div>
               ) : (
                 <Button
-                  className="h-14 w-full rounded-xl text-lg font-bold shadow-lg shadow-indigo-100"
+                  className="h-14 w-full rounded-2xl text-lg font-bold shadow-lg shadow-indigo-100 sm:h-14 sm:rounded-xl"
                   onClick={onUploadIrys}
                   disabled={uploading || !file}
                 >
@@ -265,26 +273,28 @@ export default function UploadPage() {
           <Card
             className={`border-slate-200/60 shadow-sm ${!walletManager.isUnlocked ? "opacity-60" : ""}`}
           >
-            <CardHeader>
-              <CardTitle className="text-xl">
+            <CardHeader className="sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">
                 {t("upload.arweaveTitle")}
               </CardTitle>
-              <CardDescription>{t("upload.arweaveDesc")}</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
+                {t("upload.arweaveDesc")}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid w-full items-center gap-1.5">
+              <div className="grid w-full items-center gap-2 sm:gap-1.5">
                 <Label
                   htmlFor="file-arweave"
                   className="text-sm font-bold text-slate-700"
                 >
                   {t("upload.chooseFile")}
                 </Label>
-                <div className="mt-1.5">
+                <div className="mt-0.5">
                   <Input
                     id="file-arweave"
                     type="file"
                     disabled={!walletManager.isUnlocked}
-                    className="h-11 cursor-pointer border-slate-200"
+                    className="h-12 cursor-pointer border-slate-200 bg-slate-50/50 sm:h-11"
                     onChange={(e) =>
                       e.target.files && setFile(e.target.files[0])
                     }
@@ -292,14 +302,14 @@ export default function UploadPage() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="flex items-center space-x-3 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
                 <input
                   type="checkbox"
                   id="encrypt-ar"
                   checked={encryptUpload}
                   onChange={(e) => setEncryptUpload(e.target.checked)}
                   disabled={!walletManager.isUnlocked}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 sm:h-4 sm:w-4"
                 />
                 <Label
                   htmlFor="encrypt-ar"
@@ -311,22 +321,22 @@ export default function UploadPage() {
               </div>
 
               {!walletManager.isUnlocked ? (
-                <div className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-8 text-center">
+                <div className="space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 px-4 py-8 text-center sm:rounded-xl">
                   <Lock className="mx-auto h-10 w-10 text-indigo-400 opacity-50" />
-                  <p className="text-sm font-medium text-indigo-900">
+                  <p className="px-2 text-sm leading-relaxed font-medium text-indigo-900">
                     {t("upload.arweaveLockedHint")}
                   </p>
                   <Link to="/account">
                     <Button
                       variant="outline"
-                      className="mt-2 border-indigo-200 hover:bg-indigo-100"
+                      className="mt-2 rounded-xl border-indigo-200 hover:bg-indigo-100"
                     >
                       {t("common.account")}
                     </Button>
                   </Link>
                 </div>
               ) : !walletManager.activeWallet ? (
-                <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
+                <div className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-8 text-center sm:rounded-xl">
                   <div className="text-sm font-bold text-slate-600">
                     {walletManager.wallets.length === 0
                       ? t("upload.arweaveNoAccount")
@@ -335,14 +345,14 @@ export default function UploadPage() {
 
                   {walletManager.wallets.filter((w) => w.chain === "arweave")
                     .length > 0 ? (
-                    <div className="mx-auto grid max-w-xs grid-cols-1 gap-2">
+                    <div className="mx-auto grid max-w-xs grid-cols-1 gap-3">
                       {walletManager.wallets
                         .filter((w) => w.chain === "arweave")
                         .map((w) => (
                           <Button
                             key={w.id}
                             variant="outline"
-                            className="h-auto justify-start rounded-xl border-slate-200 px-4 py-3 text-left hover:border-indigo-600 hover:bg-indigo-50"
+                            className="h-auto justify-start rounded-2xl border-slate-200 px-4 py-4 text-left hover:border-indigo-600 hover:bg-indigo-50 sm:rounded-xl"
                             onClick={() =>
                               walletManager.selectWallet(w.address)
                             }
@@ -351,7 +361,7 @@ export default function UploadPage() {
                               <div className="text-sm font-bold text-slate-900">
                                 {w.alias}
                               </div>
-                              <div className="mt-0.5 max-w-[200px] truncate font-mono text-[10px] text-slate-500">
+                              <div className="mt-0.5 max-w-full truncate font-mono text-[10px] text-slate-500">
                                 {w.address}
                               </div>
                             </div>
@@ -359,15 +369,18 @@ export default function UploadPage() {
                         ))}
                     </div>
                   ) : (
-                    <div className="flex justify-center gap-3">
+                    <div className="flex flex-col justify-center gap-3 sm:flex-row">
                       <Button
                         onClick={handleCreateArWallet}
-                        className="rounded-lg"
+                        className="rounded-xl"
                       >
                         <Plus className="mr-2 h-4 w-4" /> {t("identities.new")}
                       </Button>
                       <div className="relative">
-                        <Button variant="outline" className="rounded-lg">
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-xl sm:w-auto"
+                        >
                           <Download className="mr-2 h-4 w-4" />{" "}
                           {t("identities.import")}
                         </Button>
@@ -383,7 +396,7 @@ export default function UploadPage() {
                 </div>
               ) : (
                 <Button
-                  className="h-14 w-full rounded-xl bg-black text-lg font-bold text-white shadow-xl shadow-zinc-100 hover:bg-zinc-800"
+                  className="h-14 w-full rounded-2xl bg-black text-lg font-bold text-white shadow-xl shadow-zinc-100 hover:bg-zinc-800 sm:rounded-xl"
                   onClick={onUploadArweave}
                   disabled={uploading || !file}
                 >
@@ -405,10 +418,10 @@ export default function UploadPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="flex items-start gap-4 rounded-xl border border-indigo-100 bg-indigo-50 p-5 shadow-xs">
+      <div className="flex items-start gap-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-5 shadow-xs sm:rounded-xl sm:p-6">
         <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-indigo-600" />
         <div className="text-sm leading-relaxed text-indigo-900">
-          <p className="mb-1 text-base font-bold">
+          <p className="mb-1 text-base font-bold sm:text-lg">
             {t("common.securityNotice")}
           </p>
           <p className="opacity-90">{t("common.securityNoticeDesc")}</p>

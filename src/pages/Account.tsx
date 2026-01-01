@@ -406,20 +406,22 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-4xl space-y-6 px-0 py-4 sm:space-y-8 sm:px-4 sm:py-8">
+      <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-0">
         <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {t("common.account")}
           </h2>
-          <p className="text-slate-500">{t("identities.multiChainDesc")}</p>
+          <p className="text-sm text-slate-500 sm:text-base">
+            {t("identities.multiChainDesc")}
+          </p>
         </div>
         {walletManager.isUnlocked && (
           <Button
             variant="outline"
             size="sm"
             onClick={walletManager.logout}
-            className="border-red-100 text-red-500 hover:bg-red-50"
+            className="w-full border-red-100 text-red-500 hover:bg-red-50 sm:w-auto"
           >
             <LogOut className="mr-2 h-4 w-4" /> {t("identities.logout")}
           </Button>
@@ -427,12 +429,14 @@ export default function AccountPage() {
       </div>
 
       {!walletManager.isUnlocked ? (
-        <UnlockForm onUnlock={handleUnlock} />
+        <div className="px-4 sm:px-0">
+          <UnlockForm onUnlock={handleUnlock} />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="space-y-8 lg:col-span-2">
-            <Card className="overflow-hidden border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-3">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-3">
+          <div className="space-y-6 sm:space-y-8 lg:col-span-2">
+            <Card className="overflow-hidden border-slate-200 shadow-sm sm:rounded-2xl">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-3 sm:px-6">
                 <CardTitle className="text-base text-slate-700">
                   {t("identities.title")}
                 </CardTitle>
@@ -442,60 +446,79 @@ export default function AccountPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <Tabs defaultValue="ethereum" className="w-full">
-                  <TabsList className="mx-4 mt-4 mb-0 h-auto w-auto flex-wrap justify-start rounded-lg bg-slate-100 p-1">
-                    {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
-                      (chain) => (
-                        <TabsTrigger
-                          key={chain}
-                          value={chain}
-                          className="rounded-md px-4 py-2 text-xs font-semibold capitalize data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
-                        >
-                          {chain}
-                        </TabsTrigger>
-                      ),
-                    )}
-                  </TabsList>
-                  <TabsContent value="ethereum" className="px-4 pt-4 pb-4">
+                  <div className="overflow-x-auto px-4 pt-4 sm:px-6">
+                    <TabsList className="mb-0 flex h-auto w-max flex-nowrap justify-start gap-1 rounded-lg bg-slate-100 p-1 sm:w-auto sm:flex-wrap">
+                      {["ethereum", "bitcoin", "solana", "sui", "arweave"].map(
+                        (chain) => (
+                          <TabsTrigger
+                            key={chain}
+                            value={chain}
+                            className="rounded-md px-4 py-2 text-xs font-semibold capitalize data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
+                          >
+                            {chain}
+                          </TabsTrigger>
+                        ),
+                      )}
+                    </TabsList>
+                  </div>
+                  <TabsContent
+                    value="ethereum"
+                    className="px-4 pt-4 pb-4 sm:px-6 sm:pb-6"
+                  >
                     {renderAccountList("ethereum")}
                   </TabsContent>
-                  <TabsContent value="bitcoin" className="px-4 pt-4 pb-4">
+                  <TabsContent
+                    value="bitcoin"
+                    className="px-4 pt-4 pb-4 sm:px-6 sm:pb-6"
+                  >
                     {renderAccountList("bitcoin")}
                   </TabsContent>
-                  <TabsContent value="solana" className="px-4 pt-4 pb-4">
+                  <TabsContent
+                    value="solana"
+                    className="px-4 pt-4 pb-4 sm:px-6 sm:pb-6"
+                  >
                     {renderAccountList("solana")}
                   </TabsContent>
-                  <TabsContent value="sui" className="px-4 pt-4 pb-4">
+                  <TabsContent
+                    value="sui"
+                    className="px-4 pt-4 pb-4 sm:px-6 sm:pb-6"
+                  >
                     {renderAccountList("sui")}
                   </TabsContent>
-                  <TabsContent value="arweave" className="px-4 pt-4 pb-4">
+                  <TabsContent
+                    value="arweave"
+                    className="px-4 pt-4 pb-4 sm:px-6 sm:pb-6"
+                  >
                     {renderAccountList("arweave")}
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
 
-            <AddAccountSection
-              onAddAccount={handleAddAccount}
-              onCreateAccount={handleCreateAccount}
-              isPaymentConnected={externalWallets.isPaymentConnected}
-              paymentAddress={externalWallets.paymentAddress}
-              allEVMAddresses={externalWallets.allEVMAddresses}
-              isArConnected={externalWallets.isArConnected}
-              arAddress={externalWallets.arAddress}
-              connectArweave={externalWallets.connectArweave}
-              isSolConnected={externalWallets.isSolConnected}
-              solAddress={externalWallets.solAddress}
-              connectSolana={externalWallets.connectSolana}
-              disconnectSolana={externalWallets.disconnectSolana}
-              isSuiConnected={externalWallets.isSuiConnected}
-              suiAddress={externalWallets.suiAddress}
-              connectSui={externalWallets.connectSui}
-              disconnectSui={externalWallets.disconnectSui}
-            />
+            <div className="px-4 sm:px-0">
+              <AddAccountSection
+                onAddAccount={handleAddAccount}
+                onCreateAccount={handleCreateAccount}
+                isPaymentConnected={externalWallets.isPaymentConnected}
+                paymentAddress={externalWallets.paymentAddress}
+                allEVMAddresses={externalWallets.allEVMAddresses}
+                isArConnected={externalWallets.isArConnected}
+                arAddress={externalWallets.arAddress}
+                connectArweave={externalWallets.connectArweave}
+                isSolConnected={externalWallets.isSolConnected}
+                solAddress={externalWallets.solAddress}
+                connectSolana={externalWallets.connectSolana}
+                disconnectSolana={externalWallets.disconnectSolana}
+                isSuiConnected={externalWallets.isSuiConnected}
+                suiAddress={externalWallets.suiAddress}
+                connectSui={externalWallets.connectSui}
+                disconnectSui={externalWallets.disconnectSui}
+              />
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
+          <div className="space-y-6 px-4 sm:px-0">
+            <div className="rounded-2xl border border-green-100 bg-green-50 p-6 sm:p-8">
               <div className="mb-4 flex items-center gap-3">
                 <div className="rounded-lg bg-green-100 p-2 text-green-600">
                   <ShieldCheck className="h-5 w-5" />
@@ -512,7 +535,7 @@ export default function AccountPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 sm:p-8">
               <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-800">
                 <Info className="h-4 w-4 text-indigo-500" />{" "}
                 {t("identities.securityInfo")}
