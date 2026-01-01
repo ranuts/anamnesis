@@ -11,6 +11,7 @@ import { useTranslation } from "@/i18n/config"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useWalletManager } from "@/hooks/use-wallet-manager"
+import { useExternalWallets } from "@/hooks/use-external-wallets"
 import {
   ArweaveIcon,
   EthereumIcon,
@@ -23,6 +24,7 @@ export function Navbar() {
   const { t } = useTranslation()
   const location = useLocation()
   const walletManager = useWalletManager()
+  const externalWallets = useExternalWallets()
 
   const navItems = [
     { path: "/", label: t("common.dashboard"), icon: LayoutDashboard },
@@ -109,12 +111,27 @@ export function Navbar() {
                 const hasLocalAccount =
                   walletManager.isUnlocked && !!walletManager.activeAddress
 
+                // 外部非 EVM 钱包状态
+                const isSolActive =
+                  externalWallets.isSolConnected && !!externalWallets.solAddress
+                const isSuiActive =
+                  externalWallets.isSuiConnected && !!externalWallets.suiAddress
+                const isArActive =
+                  externalWallets.isArConnected && !!externalWallets.arAddress
+
+                const anyConnected =
+                  hasLocalAccount ||
+                  connected ||
+                  isSolActive ||
+                  isSuiActive ||
+                  isArActive
+
                 // 统一包装在 Link 中，点击总是跳转到 /account
                 return (
                   <Link
                     to="/account"
                     className={`flex h-8 items-center gap-2 rounded-full border px-3 shadow-sm transition-all active:scale-95 ${
-                      hasLocalAccount || connected
+                      anyConnected
                         ? "border-slate-200 bg-white hover:bg-slate-50"
                         : "border-dashed border-slate-300 bg-slate-50/50 text-slate-400 hover:border-indigo-300 hover:text-indigo-500"
                     }`}
@@ -128,7 +145,7 @@ export function Navbar() {
                         </span>
                       </>
                     ) : hasLocalAccount && activeAccount ? (
-                      // 本地账户激活状态
+                      // 1. 本地账户激活状态 (优先级最高)
                       <>
                         <div className="flex h-3.5 w-3.5 items-center justify-center">
                           {getChainIcon(activeAccount.chain)}
@@ -138,18 +155,47 @@ export function Navbar() {
                         </span>
                       </>
                     ) : connected && account ? (
-                      // 外部账户连接状态
+                      // 2. EVM 外部账户连接状态
                       <>
                         <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                        {chain?.hasIcon && chain.iconUrl && (
+                        {chain?.hasIcon && chain.iconUrl ? (
                           <img
                             alt={chain.name ?? "Chain icon"}
                             src={chain.iconUrl}
                             style={{ width: 14, height: 14 }}
                           />
+                        ) : (
+                          <EthereumIcon className="h-3.5 w-3.5" />
                         )}
                         <span className="text-xs font-bold text-slate-700">
                           {account.displayName}
+                        </span>
+                      </>
+                    ) : isSolActive ? (
+                      // 3. Solana 外部账户
+                      <>
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        <SolanaIcon className="h-3.5 w-3.5" />
+                        <span className="text-xs font-bold text-slate-700">
+                          {shortenedAddress(externalWallets.solAddress!)}
+                        </span>
+                      </>
+                    ) : isSuiActive ? (
+                      // 4. Sui 外部账户
+                      <>
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        <SuiIcon className="h-3.5 w-3.5" />
+                        <span className="text-xs font-bold text-slate-700">
+                          {shortenedAddress(externalWallets.suiAddress!)}
+                        </span>
+                      </>
+                    ) : isArActive ? (
+                      // 5. Arweave 外部账户
+                      <>
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        <ArweaveIcon className="h-3.5 w-3.5" />
+                        <span className="text-xs font-bold text-slate-700">
+                          {shortenedAddress(externalWallets.arAddress!)}
                         </span>
                       </>
                     ) : (
