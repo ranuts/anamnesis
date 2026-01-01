@@ -404,19 +404,36 @@ export default function AccountPage() {
           return (
             <div
               key={account.id || (account as any).id}
-              className={`group relative overflow-hidden rounded-xl border transition-all ${
+              className={`group relative overflow-hidden rounded-xl border transition-all cursor-pointer ${
                 isActive
                   ? "border-indigo-300 bg-gradient-to-br from-indigo-50 to-indigo-50/50 shadow-md"
-                  : account.isExternal
-                    ? "border-blue-200 bg-blue-50/30 hover:border-blue-300 hover:shadow-sm"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
               }`}
+              onClick={(e) => {
+                // 如果点击的是按钮区域，不触发切换
+                const target = e.target as HTMLElement
+                if (
+                  target.closest("button") ||
+                  target.closest('[role="button"]')
+                ) {
+                  return
+                }
+
+                // 切换账户
+                if (account.isExternal) {
+                  if (!isActive) {
+                    walletManager.clearActiveWallet()
+                    toast.success("已切换到外部账户")
+                  }
+                } else {
+                  if (!isActive) {
+                    walletManager.selectWallet(account.address)
+                  }
+                }
+              }}
             >
               {isActive && (
                 <div className="absolute left-0 top-0 h-full w-1 bg-indigo-600" />
-              )}
-              {account.isExternal && (
-                <div className="absolute left-0 top-0 h-full w-1 bg-blue-500" />
               )}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
@@ -425,13 +442,11 @@ export default function AccountPage() {
                       className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all ${
                         isActive
                           ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                          : account.isExternal
-                            ? "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
-                            : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                          : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
                       }`}
                     >
                       {getChainIcon(account.chain)}
-                </div>
+                    </div>
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="truncate font-bold text-slate-900">
@@ -442,9 +457,9 @@ export default function AccountPage() {
                         {isActive && (
                           <span className="shrink-0 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
                             {t("identities.currentAccount")}
-                    </span>
+                          </span>
                         )}
-                        {account.isExternal && (
+                        {account.isExternal && !isActive && (
                           <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600">
                             外部连接
                           </span>
@@ -452,14 +467,17 @@ export default function AccountPage() {
                       </div>
                       <div className="flex items-center gap-2 font-mono text-xs text-slate-500">
                         <span className="truncate">{account.address}</span>
-                    <button
-                          onClick={() => copyAddress(account.address)}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            copyAddress(account.address)
+                          }}
                           className="shrink-0 p-1 text-slate-400 transition-colors hover:text-indigo-600"
                           title={t("common.copy")}
-                    >
+                        >
                           <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                        </button>
+                      </div>
                       <div className="flex items-center gap-2">
                         {loading ? (
                           <span className="text-xs text-slate-400 italic">
@@ -473,36 +491,24 @@ export default function AccountPage() {
                             <span className="text-xs font-medium text-slate-500 uppercase">
                               {balance.symbol}
                             </span>
-                </div>
+                          </div>
                         ) : null}
-              </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                        {account.isExternal ? (
+                  <div
+                    className="flex shrink-0 items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {account.isExternal ? (
                       // 外部账户操作按钮
                       <>
-                        {!isActive && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                            onClick={() => {
-                              // 清除本地账户激活状态，使外部账户成为激活账户
-                              walletManager.clearActiveWallet()
-                              toast.success("已切换到外部账户")
-                            }}
-                            className="h-8 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
-                  >
-                    <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                    {t("identities.activate")}
-                  </Button>
-                )}
                         {account.chain === "ethereum" && isPaymentConnected ? (
                           <ConnectButton.Custom>
                             {({ openAccountModal }) => (
-                <Button
-                  variant="ghost"
-                  size="sm"
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={openAccountModal}
                                 className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
                                 title="管理账户"
@@ -518,7 +524,6 @@ export default function AccountPage() {
                           onClick={async () => {
                             if (account.chain === "ethereum") {
                               disconnectEVM()
-                              // 如果当前使用的是外部账户，清除保存的状态
                               if (!walletManager.activeAddress && walletManager.vaultId) {
                                 try {
                                   await db.vault.delete(
@@ -541,46 +546,33 @@ export default function AccountPage() {
                     ) : (
                       // 本地账户操作按钮
                       <>
-                        {!isActive && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              walletManager.selectWallet(account.address)
-                            }
-                            className="h-8 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
-                          >
-                            <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                            {t("identities.activate")}
-                          </Button>
-                        )}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleShowSensitive(account, "key")}
                           className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
                           title={t("identities.viewSensitive")}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         {account.chain !== "arweave" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() =>
                               handleShowSensitive(account, "mnemonic")
                             }
                             className="h-8 w-8 p-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
                             title={t("identities.mnemonic")}
-                  >
-                    <Lock className="h-4 w-4" />
-                  </Button>
+                          >
+                            <Lock className="h-4 w-4" />
+                          </Button>
                         )}
                       </>
-                )}
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-        </div>
             </div>
           )
         })}
