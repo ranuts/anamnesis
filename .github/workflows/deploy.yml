@@ -38,7 +38,7 @@ jobs:
         run: pnpm run build
 
       - name: Copy index.html to 404.html
-        run: cp dist/index.html dist/404.html
+        run: cp build/client/index.html build/client/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -46,7 +46,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./dist"
+          path: "./build/client"
 
   deploy:
     environment:

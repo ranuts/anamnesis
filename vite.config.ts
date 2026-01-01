@@ -1,5 +1,5 @@
 import path from "path"
-import react from "@vitejs/plugin-react"
+import { reactRouter } from "@react-router/dev/vite"
 import { defineConfig } from "vite"
 import tailwindcss from "@tailwindcss/vite"
 import { nodePolyfills } from "vite-plugin-node-polyfills"
@@ -7,23 +7,26 @@ import wasm from "vite-plugin-wasm"
 import topLevelAwait from "vite-plugin-top-level-await"
 import { VitePWA } from "vite-plugin-pwa"
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   base: "/anamnesis/",
   plugins: [
-    react(),
+    reactRouter(),
     tailwindcss(),
     wasm(),
     topLevelAwait(),
-    nodePolyfills({
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true,
-      },
-    }),
+    // 仅在客户端构建时注入 Polyfills，避免干扰 SSR/SSG 预渲染环境
+    !isSsrBuild &&
+      nodePolyfills({
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
+      }),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      workmode: "generateSW",
       workbox: {
         // 增加 PWA 允许缓存的最大文件大小到 20MB (应对某些无法进一步拆分的 Web3 库)
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
@@ -93,4 +96,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000, // 提高警告阈值到 1000kB
   },
-})
+}))
