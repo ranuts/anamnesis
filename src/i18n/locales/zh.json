@@ -65,7 +65,10 @@
     "successActive": "当前活跃钱包：{{alias}}",
     "successGenerated": "新的 Arweave 钱包已生成并下载！",
     "errorGenerate": "生成钱包失败：{{message}}",
-    "viewSensitive": "查看敏感信息",
+    "viewSensitive": "查看私钥",
+    "mnemonic": "查看助记词",
+    "mnemonicDesc": "请确认主密码以解密 <strong>{{alias}}</strong> 的助记词。",
+    "noMnemonic": "该账户没有关联的助记词（可能是通过私钥导入的）。",
     "copySuccess": "已复制地址：{{address}}"
   },
   "history": {

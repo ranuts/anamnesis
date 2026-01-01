@@ -65,7 +65,10 @@
     "successActive": "Active wallet: {{alias}}",
     "successGenerated": "New Arweave wallet generated and downloaded!",
     "errorGenerate": "Failed to generate wallet: {{message}}",
-    "viewSensitive": "View Sensitive Info",
+    "viewSensitive": "View Private Key",
+    "mnemonic": "View Mnemonic",
+    "mnemonicDesc": "Confirm your master password to decrypt the mnemonic for <strong>{{alias}}</strong>.",
+    "noMnemonic": "No mnemonic found for this account (it might have been imported via private key).",
     "copySuccess": "Copied address: {{address}}"
   },
   "history": {

@@ -44,7 +44,8 @@ export default function AccountPage() {
   const [showSensitiveDialog, setShowSensitiveDialog] = useState(false);
   const [sensitiveWallet, setSensitiveWallet] = useState<any>(null);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [decryptedKey, setDecryptedKey] = useState<string | null>(null);
+  const [decryptedInfo, setDecryptedInfo] = useState<{ key: string; mnemonic?: string } | null>(null);
+  const [viewType, setViewType] = useState<"key" | "mnemonic">("key");
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,17 +75,18 @@ export default function AccountPage() {
     toast.success(t("identities.copySuccess", { address: `${address.slice(0, 6)}...${address.slice(-4)}` }));
   };
 
-  const handleShowSensitive = (wallet: any) => {
+  const handleShowSensitive = (wallet: any, type: "key" | "mnemonic") => {
     setSensitiveWallet(wallet);
     setConfirmPassword("");
-    setDecryptedKey(null);
+    setDecryptedInfo(null);
+    setViewType(type);
     setShowSensitiveDialog(true);
   };
 
   const verifyAndShow = async () => {
     try {
-      const key = await walletManager.getDecryptedKey(sensitiveWallet, confirmPassword);
-      setDecryptedKey(key);
+      const info = await walletManager.getDecryptedInfo(sensitiveWallet, confirmPassword);
+      setDecryptedInfo(info);
     } catch (e) {
       toast.error(t("unlock.incorrect"));
     }
@@ -117,10 +119,18 @@ export default function AccountPage() {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => handleShowSensitive(w)} className="text-slate-400 hover:text-indigo-600">
-              <Eye className="w-4 h-4 mr-2" />
-              {t("identities.viewSensitive")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => handleShowSensitive(w, "key")} className="text-slate-400 hover:text-indigo-600">
+                <Eye className="w-4 h-4 mr-2" />
+                {t("identities.viewSensitive")}
+              </Button>
+              {w.chain !== 'arweave' && (
+                <Button variant="ghost" size="sm" onClick={() => handleShowSensitive(w, "mnemonic")} className="text-slate-400 hover:text-indigo-600">
+                  <Lock className="w-4 h-4 mr-2" />
+                  {t("identities.mnemonic")}
+                </Button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -290,18 +300,18 @@ export default function AccountPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-red-500" />
-              {t("identities.viewSensitiveTitle")}
+              {viewType === "key" ? t("identities.viewSensitiveTitle") : t("identities.mnemonic")}
             </DialogTitle>
             <DialogDescription>
               <Trans 
-                i18nKey="identities.viewSensitiveDesc" 
+                i18nKey={viewType === "key" ? "identities.viewSensitiveDesc" : "identities.mnemonicDesc"} 
                 values={{ alias: sensitiveWallet?.alias }} 
                 components={{ strong: <strong /> }}
               />
             </DialogDescription>
           </DialogHeader>
           
-          {!decryptedKey ? (
+          {!decryptedInfo ? (
             <div className="space-y-4 py-4">
               <Input
                 type="password"
@@ -315,10 +325,10 @@ export default function AccountPage() {
             <div className="space-y-4 py-4">
               <div className="p-4 bg-slate-900 rounded-xl">
                 <p className="text-xs font-mono text-green-400 break-all leading-relaxed">
-                  {decryptedKey}
+                  {viewType === "key" ? decryptedInfo.key : (decryptedInfo.mnemonic || t("identities.noMnemonic"))}
                 </p>
               </div>
-              <Button onClick={() => copyAddress(decryptedKey)} variant="outline" className="w-full">
+              <Button onClick={() => copyAddress(viewType === "key" ? decryptedInfo.key : (decryptedInfo.mnemonic || ""))} variant="outline" className="w-full">
                 <Copy className="w-4 h-4 mr-2" /> {t("common.copy")}
               </Button>
             </div>

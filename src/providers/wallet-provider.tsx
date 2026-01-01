@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { db, type WalletRecord } from "@/lib/db"
 import {
   deriveKey,
@@ -19,10 +19,19 @@ import * as bitcoin from "bitcoinjs-lib"
 import * as ecc from "tiny-secp256k1"
 import ECPairFactory from "ecpair"
 import bs58 from "bs58"
+import * as bip39 from "bip39"
+import { derivePath } from "ed25519-hd-key"
+import { BIP32Factory } from "bip32"
 
 // Initialize Bitcoin ecc
 bitcoin.initEccLib(ecc)
 const ECPair = ECPairFactory(ecc)
+const bip32 = BIP32Factory(ecc)
+
+interface DecryptedData {
+  key: string
+  mnemonic?: string
+}
 
 interface WalletContextType {
   wallets: WalletRecord[]
@@ -36,7 +45,7 @@ interface WalletContextType {
   addWallet: (input: any, alias: string) => Promise<void>
   createWallet: (chain: WalletRecord["chain"], alias: string) => Promise<void>
   selectWallet: (address: string) => Promise<void>
-  getDecryptedKey: (wallet: WalletRecord, passwordConfirm: string) => Promise<string>
+  getDecryptedInfo: (wallet: WalletRecord, passwordConfirm: string) => Promise<DecryptedData>
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -55,7 +64,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [activeWallet, setActiveWallet] = useState<any | null>(null)
 
   const getVaultId = async (key: Uint8Array) => {
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", key)
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", key as any)
     return Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("")
@@ -104,18 +113,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // 1. Arweave JWK
     if (typeof input === "object" && input.kty === "RSA") {
       const address = await arweave.wallets.jwkToAddress(input)
-      return { chain: "arweave" as const, address, key: JSON.stringify(input) }
+      return {
+        chain: "arweave" as const,
+        address,
+        key: JSON.stringify(input),
+      }
     }
 
     const str = String(input).trim()
 
-    // 2. Ethereum Private Key (Hex, 64 chars)
+    // 2. Mnemonic Detection (12 or 24 words)
+    if (bip39.validateMnemonic(str)) {
+      // For mnemonic, we default to Ethereum for detection, but it could be others.
+      // We'll return it as a special case.
+      const wallet = ethers.Wallet.fromPhrase(str)
+      return {
+        chain: "ethereum" as const,
+        address: wallet.address,
+        key: wallet.privateKey,
+        mnemonic: str,
+      }
+    }
+
+    // 3. Ethereum Private Key (Hex, 64 chars)
     if (/^(0x)?[0-9a-fA-F]{64}$/.test(str)) {
       const wallet = new ethers.Wallet(str.startsWith("0x") ? str : "0x" + str)
       return { chain: "ethereum" as const, address: wallet.address, key: str }
     }
 
-    // 3. Solana Secret Key (Base58)
+    // 4. Solana Secret Key (Base58)
     if (/^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(str)) {
       try {
         const keypair = solana.Keypair.fromSecretKey(bs58.decode(str))
@@ -127,7 +153,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } catch (e) {}
     }
 
-    // 4. Sui Private Key
+    // 5. Sui Private Key
     if (str.startsWith("suiprivkey")) {
       try {
         const keypair = Ed25519Keypair.fromSecretKey(str)
@@ -139,7 +165,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } catch (e) {}
     }
 
-    // 5. Bitcoin WIF (Primary: Taproot bc1p, Fallback: SegWit bc1q)
+    // 6. Bitcoin WIF (Primary: Taproot bc1p, Fallback: SegWit bc1q)
     try {
       const keyPair = ECPair.fromWIF(str)
       // Taproot (bc1p)
@@ -175,35 +201,49 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       let key: string
       let address: string
+      let mnemonic: string | undefined
 
-      if (chain === "ethereum") {
-        const wallet = ethers.Wallet.createRandom()
-        key = wallet.privateKey
-        address = wallet.address
-      } else if (chain === "solana") {
-        const keypair = solana.Keypair.generate()
-        key = bs58.encode(keypair.secretKey)
-        address = keypair.publicKey.toBase58()
-      } else if (chain === "sui") {
-        const keypair = Ed25519Keypair.generate()
-        key = keypair.getSecretKey()
-        address = keypair.getPublicKey().toSuiAddress()
-      } else if (chain === "bitcoin") {
-        const keyPair = ECPair.makeRandom()
-        key = keyPair.toWIF()
-        const { address: btcAddress } = bitcoin.payments.p2wpkh({
-          pubkey: Buffer.from(keyPair.publicKey),
-        })
-        address = btcAddress || "unknown"
-      } else if (chain === "arweave") {
+      if (chain === "arweave") {
+        // Arweave typically doesn't use BIP39 mnemonics in the same way, generating JWK
         const jwk = await arweave.wallets.generate()
         key = JSON.stringify(jwk)
         address = await arweave.wallets.jwkToAddress(jwk)
       } else {
-        throw new Error("Unsupported chain for creation")
+        // Generate a standard BIP39 mnemonic for others
+        mnemonic = bip39.generateMnemonic()
+        const seed = await bip39.mnemonicToSeed(mnemonic)
+
+        if (chain === "ethereum") {
+          const wallet = ethers.Wallet.fromPhrase(mnemonic)
+          key = wallet.privateKey
+          address = wallet.address
+        } else if (chain === "solana") {
+          const derived = derivePath("m/44'/501'/0'/0'", seed.toString("hex"))
+          const keypair = solana.Keypair.fromSeed(derived.key)
+          key = bs58.encode(keypair.secretKey)
+          address = keypair.publicKey.toBase58()
+        } else if (chain === "sui") {
+          const keypair = Ed25519Keypair.deriveKeypair(mnemonic)
+          key = keypair.getSecretKey()
+          address = keypair.getPublicKey().toSuiAddress()
+        } else if (chain === "bitcoin") {
+          const root = bip32.fromSeed(seed)
+          const child = root.derivePath("m/86'/0'/0'/0/0")
+          const { address: btcAddress } = bitcoin.payments.p2tr({
+            internalPubkey: Buffer.from(child.publicKey.slice(1, 33)),
+          })
+          key = ECPair.fromPrivateKey(child.privateKey!).toWIF()
+          address = btcAddress || "unknown"
+        } else {
+          throw new Error("Unsupported chain for creation")
+        }
       }
 
-      const { ciphertext, nonce } = await encryptData(toBytes(key), masterKey)
+      const storageData: DecryptedData = { key, mnemonic }
+      const { ciphertext, nonce } = await encryptData(
+        toBytes(JSON.stringify(storageData)),
+        masterKey,
+      )
       await db.wallets.add({
         address,
         encryptedKey: JSON.stringify({
@@ -218,6 +258,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await loadWallets()
       toast.success(t("identities.successAdded", { alias }))
     } catch (e: any) {
+      console.error("Wallet creation error:", e)
       toast.error(e.message || "Failed to create wallet")
     }
   }
@@ -225,8 +266,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const addWallet = async (input: any, alias: string) => {
     if (!masterKey || !vaultId) return
     try {
-      const { chain, address, key } = await detectChainAndAddress(input)
-      const { ciphertext, nonce } = await encryptData(toBytes(key), masterKey)
+      const { chain, address, key, mnemonic } =
+        await detectChainAndAddress(input)
+      const storageData: DecryptedData = { key, mnemonic }
+      const { ciphertext, nonce } = await encryptData(
+        toBytes(JSON.stringify(storageData)),
+        masterKey,
+      )
       await db.wallets.add({
         address,
         encryptedKey: JSON.stringify({
@@ -246,29 +292,42 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }
 
   const selectWallet = async (address: string) => {
-    const walletRecord = wallets.find(w => w.address === address)
+    const walletRecord = wallets.find((w) => w.address === address)
     if (!walletRecord || !masterKey) return
-    
+
     try {
-        const { ciphertext, nonce } = JSON.parse(walletRecord.encryptedKey)
-        const decrypted = await decryptData(fromBase64(ciphertext), fromBase64(nonce), masterKey)
-        const keyData = fromBytes(decrypted)
-        
-        setActiveAddress(address)
-        setActiveWallet(walletRecord.chain === 'arweave' ? JSON.parse(keyData) : keyData)
-        toast.success(t("identities.successActive", { alias: walletRecord.alias }))
+      const { ciphertext, nonce } = JSON.parse(walletRecord.encryptedKey)
+      const decrypted = await decryptData(
+        fromBase64(ciphertext),
+        fromBase64(nonce),
+        masterKey,
+      )
+      const data: DecryptedData = JSON.parse(fromBytes(decrypted))
+
+      setActiveAddress(address)
+      setActiveWallet(
+        walletRecord.chain === "arweave" ? JSON.parse(data.key) : data.key,
+      )
+      toast.success(t("identities.successActive", { alias: walletRecord.alias }))
     } catch (e) {
-        toast.error("Failed to activate wallet")
+      toast.error("Failed to activate wallet")
     }
   }
 
-  const getDecryptedKey = async (wallet: WalletRecord, passwordConfirm: string) => {
+  const getDecryptedInfo = async (
+    wallet: WalletRecord,
+    passwordConfirm: string,
+  ) => {
     const key = await deriveKey(passwordConfirm, VAULT_SALT)
     const vid = await getVaultId(key)
     if (vid !== vaultId) throw new Error("Incorrect password")
     const { ciphertext, nonce } = JSON.parse(wallet.encryptedKey)
-    const decrypted = await decryptData(fromBase64(ciphertext), fromBase64(nonce), key)
-    return fromBytes(decrypted)
+    const decrypted = await decryptData(
+      fromBase64(ciphertext),
+      fromBase64(nonce),
+      key,
+    )
+    return JSON.parse(fromBytes(decrypted))
   }
 
   return (
@@ -285,7 +344,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         addWallet,
         createWallet,
         selectWallet,
-        getDecryptedKey,
+        getDecryptedInfo,
       }}
     >
       {children}
